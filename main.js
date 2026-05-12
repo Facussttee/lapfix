@@ -43,6 +43,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('sidebar_collapsed', isCollapsed);
     });
 
+    // Navegación
+    document.getElementById('nav-ticket').addEventListener('click', () => switchView('ticket-view'));
+    document.getElementById('nav-kanban').addEventListener('click', () => switchView('kanban-view'));
+    document.getElementById('nav-dashboard').addEventListener('click', () => switchView('dashboard-view'));
+    document.getElementById('nav-settings').addEventListener('click', () => switchView('settings-view'));
+
+    // Cálculo de totales en tiempo real
+    document.getElementById('precioRepuestos').addEventListener('input', calcularTotal);
+    document.getElementById('precioManoObra').addEventListener('input', calcularTotal);
+    document.getElementById('precioSena').addEventListener('input', calcularTotal);
+
+    // Búsqueda en Kanban
+    document.getElementById('searchInput').addEventListener('input', filtrarTickets);
+
+    // Exportación e Importación
+    document.getElementById('export-btn').addEventListener('click', exportData);
+    document.getElementById('import-btn').addEventListener('click', importData);
+
+    // Drag and Drop en columnas Kanban
+    document.querySelectorAll('.col-content').forEach(col => {
+        col.addEventListener('dragover', allowDrop);
+        col.addEventListener('drop', (e) => {
+            const nuevoEstado = col.getAttribute('data-status');
+            drop(e, nuevoEstado);
+        });
+    });
+
+    // Delegación de eventos para botones en tarjetas Kanban (Eliminar e Imprimir)
+    document.querySelector('.kanban-board').addEventListener('click', (e) => {
+        const target = e.target;
+        if (target.classList.contains('btn-delete')) {
+            const ticketId = target.closest('.ticket-card').id;
+            borrarTicket(ticketId);
+        } else if (target.classList.contains('btn-print')) {
+            const ticketId = target.closest('.ticket-card').id;
+            imprimirPresupuesto(ticketId);
+        }
+    });
+
     await renderKanban();
 });
 
@@ -292,7 +331,7 @@ async function renderKanban(filtro = '') {
         card.className = 'ticket-card';
         card.draggable = true;
         card.id = ticket.id;
-        card.ondragstart = (e) => drag(e);
+        card.addEventListener('dragstart', drag);
 
         card.innerHTML = `
             <div class="tc-header">
@@ -304,8 +343,8 @@ async function renderKanban(filtro = '') {
                 <span class="tc-garantia ${garantiaClase}">${garantiaTexto}</span>
                 <span class="tc-total">$${ticket.precioTotal}</span>
                 <div style="display:flex; gap:0.5rem">
-                    <button class="btn-print" onclick="imprimirPresupuesto('${ticket.id}')" title="Imprimir">🖨️</button>
-                    <button class="btn-delete" onclick="borrarTicket('${ticket.id}')">Eliminar</button>
+                    <button class="btn-print" title="Imprimir">🖨️</button>
+                    <button class="btn-delete">Eliminar</button>
                 </div>
             </div>
         `;
