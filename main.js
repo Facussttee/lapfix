@@ -154,11 +154,11 @@ async function renderKanban(filtro = '') {
     });
 
     // Filtrar y renderizar
-    const tickets = await db.tickets.toArray();
-    const ticketsFiltrados = tickets.filter(t => 
-        t.id.toLowerCase().includes(filtro.toLowerCase()) || 
-        t.clienteNombre.toLowerCase().includes(filtro.toLowerCase())
-    );
+    const lowerFiltro = filtro.toLowerCase();
+    const ticketsFiltrados = await db.tickets.filter(t =>
+        t.id.toLowerCase().includes(lowerFiltro) ||
+        t.clienteNombre.toLowerCase().includes(lowerFiltro)
+    ).toArray();
 
     ticketsFiltrados.forEach(ticket => {
         const { text: garantiaTexto, className: garantiaClase } = getWarrantyStatus(ticket);
