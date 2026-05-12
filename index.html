@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAPFIX - Sistema de Gestión</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Barra Lateral (Sidebar) -->
+        <aside class="sidebar">
+            <div class="logo">LAP<span>FIX</span></div>
+            <nav class="nav-menu">
+                <button id="nav-ticket" class="nav-link active" onclick="switchView('ticket-view')"><span>📝</span><span class="nav-text">Nuevo Ticket</span></button>
+                <button id="nav-kanban" class="nav-link" onclick="switchView('kanban-view')"><span>📋</span><span class="nav-text">Tablero Kanban</span></button>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="sidebar-toggle" class="nav-link"><span>↔️</span><span class="nav-text">Ocultar Menú</span></button>
+            </div>
+        </aside>
+
+        <!-- Contenido Principal -->
+        <main class="main-content">
+            
+            <!-- VISTA: Formulario de Ingreso -->
+            <section id="ticket-view" class="view-section active">
+                <div class="section-header">
+                    <h1>Ingreso de Equipo</h1>
+                    <p>Completá los datos para generar un nuevo ticket.</p>
+                </div>
+                
+                <div class="card">
+                    <form id="ticket-form" class="form-grid">
+                        <div class="form-group">
+                            <label for="clienteNombre">Nombre del Cliente</label>
+                            <input type="text" id="clienteNombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="clienteTelefono">Teléfono</label>
+                            <input type="tel" id="clienteTelefono" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="equipoModelo">Equipo (Marca y Modelo)</label>
+                            <input type="text" id="equipoModelo" required>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="obsInicial">Observaciones Iniciales (Estado estético, accesorios, etc.)</label>
+                            <textarea id="obsInicial" rows="3"></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label for="trabajoRealizar">Falla Reportada / Trabajo a Realizar</label>
+                            <textarea id="trabajoRealizar" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="precioRepuestos">Costo Repuestos ($)</label>
+                            <input type="number" id="precioRepuestos" min="0" oninput="calcularTotal()">
+                        </div>
+                        <div class="form-group">
+                            <label for="precioManoObra">Mano de Obra ($)</label>
+                            <input type="number" id="precioManoObra" min="0" oninput="calcularTotal()">
+                        </div>
+                        <div class="form-group">
+                            <label for="precioSena">Seña Dejada ($)</label>
+                            <input type="number" id="precioSena" min="0" oninput="calcularTotal()">
+                        </div>
+                        <div class="form-group total-group">
+                            <label for="precioTotal">Total a Cobrar ($)</label>
+                            <input type="number" id="precioTotal" readonly>
+                        </div>
+                        <div class="form-group full-width form-actions">
+                            <button type="submit" class="btn-primary">Guardar Ticket</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- VISTA: Tablero Kanban -->
+            <section id="kanban-view" class="view-section">
+                <!-- Aquí se insertará dinámicamente el contenido del Kanban por tu main.js 
+                     pero como definimos la estructura cruda, la añadimos: -->
+                <div class="section-header kanban-header">
+                    <div>
+                        <h1>Tablero de Progreso</h1>
+                        <p>Arrastrá y soltá los tickets para actualizar su estado.</p>
+                    </div>
+                    <div class="search-box">
+                        <span>🔍</span>
+                        <input type="text" id="searchInput" onkeyup="filtrarTickets()" placeholder="Buscar por ID o cliente...">
+                    </div>
+                </div>
+
+                <div class="kanban-board">
+                    <!-- Columna Pendiente -->
+                    <div class="kanban-col">
+                        <div class="col-header pending-header">
+                            Pendiente (<span id="count-Pendiente">0</span>)
+                        </div>
+                        <div class="col-content" id="list-Pendiente" ondrop="drop(event, 'Pendiente')" ondragover="allowDrop(event)"></div>
+                    </div>
+
+                    <!-- Columna En Proceso -->
+                    <div class="kanban-col">
+                        <div class="col-header progress-header">
+                            En Proceso (<span id="count-En-Proceso">0</span>)
+                        </div>
+                        <div class="col-content" id="list-En-Proceso" ondrop="drop(event, 'En Proceso')" ondragover="allowDrop(event)"></div>
+                    </div>
+
+                    <!-- Columna Esperando Repuestos -->
+                    <div class="kanban-col">
+                        <div class="col-header parts-header">
+                            Esperando Repuestos (<span id="count-Esperando-Repuestos">0</span>)
+                        </div>
+                        <div class="col-content" id="list-Esperando-Repuestos" ondrop="drop(event, 'Esperando Repuestos')" ondragover="allowDrop(event)"></div>
+                    </div>
+
+                    <!-- Columna Listo para Entregar -->
+                    <div class="kanban-col">
+                        <div class="col-header done-header">
+                            Listo para Entregar (<span id="count-Listo-para-Entregar">0</span>)
+                        </div>
+                        <div class="col-content" id="list-Listo-para-Entregar" ondrop="drop(event, 'Listo para Entregar')" ondragover="allowDrop(event)"></div>
+                    </div>
+
+                    <!-- Columna Entregado -->
+                    <div class="kanban-col">
+                        <div class="col-header delivered-header">
+                            Entregado (<span id="count-Entregado">0</span>)
+                        </div>
+                        <div class="col-content" id="list-Entregado" ondrop="drop(event, 'Entregado')" ondragover="allowDrop(event)"></div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Tu script principal -->
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
