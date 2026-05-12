@@ -1,0 +1,21 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "node --test main.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Facussttee/lapfix.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Facussttee/lapfix/issues"
+  },
+  "homepage": "https://github.com/Facussttee/lapfix#readme"
+}

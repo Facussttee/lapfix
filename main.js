@@ -236,3 +236,6 @@ async function drop(ev, nuevoEstado) {
         renderKanban(document.getElementById('searchInput').value);
     }
 }
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { getWarrantyStatus };
+}
