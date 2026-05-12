@@ -321,43 +321,56 @@ select:focus {
 .ticket-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    padding: 1rem;
-    border-radius: 8px;
+    padding: 1.2rem;
+    border-radius: 10px;
     cursor: grab;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-    transition: 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
 .ticket-card:active {
     cursor: grabbing;
     transform: scale(0.98);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.5);
 }
 
 .ticket-card:hover {
     border-color: var(--accent-electric);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.4);
 }
 
 .tc-header {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 0.5rem;
+    align-items: center;
 }
 
 .tc-id {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-family: monospace;
-    color: var(--accent-electric);
-    font-weight: 700;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.05);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
 }
 
 .tc-cliente {
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-main);
 }
 
 .tc-equipo {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     color: var(--text-muted);
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
 }
 
 .tc-footer {
@@ -399,6 +412,30 @@ select:focus {
 
 .btn-delete:hover {
     text-decoration: underline;
+}
+
+/* Tablas de Servicios */
+.services-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    color: var(--text-main);
+    text-align: left;
+}
+
+.services-table th, .services-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.services-table th {
+    background-color: rgba(30, 41, 59, 0.8);
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.services-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.02);
 }
 
 /* Dashboard */
@@ -581,16 +618,4 @@ select:focus {
         color: #555;
     }
 
-    .print-signatures {
-        display: flex;
-        justify-content: space-around;
-        margin-top: 5rem;
-    }
-
-    .sig-box {
-        border-top: 1px solid #000;
-        width: 200px;
-        text-align: center;
-        padding-top: 0.5rem;
-    }
 }

@@ -6,6 +6,18 @@ db.version(1).stores({
     tickets: 'id, status, clienteNombre, fecha' 
 });
 
+// Incrementamos versión para agregar nuevas tablas y campos indexados
+db.version(2).stores({
+    tickets: 'id, status, clienteNombre, fecha, equipoSerie',
+    clientes: 'telefono, nombre', // Usaremos teléfono como clave primaria por ser más único
+    servicios: '++id, categoria, nombre' // id autoincremental
+}).upgrade(tx => {
+    // Si necesitas migrar datos viejos de tickets para que tengan un campo vacío de equipoSerie
+    return tx.tickets.toCollection().modify(ticket => {
+        if (ticket.equipoSerie === undefined) ticket.equipoSerie = '';
+    });
+});
+
 const KANBAN_STATUSES = ['Pendiente', 'Pendiente Aprobación', 'En Proceso', 'Esperando Repuestos', 'Listo para Entregar', 'Entregado'];
 
 // Al cargar la ventana
@@ -43,47 +55,33 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('sidebar_collapsed', isCollapsed);
     });
 
-    // Navegación
-    document.getElementById('nav-ticket').addEventListener('click', () => switchView('ticket-view'));
-    document.getElementById('nav-kanban').addEventListener('click', () => switchView('kanban-view'));
-    document.getElementById('nav-dashboard').addEventListener('click', () => switchView('dashboard-view'));
-    document.getElementById('nav-settings').addEventListener('click', () => switchView('settings-view'));
+    await renderDashboard(); // Cargar dashboard por defecto en lugar del kanban
+    // await renderKanban(); // Lo pre-renderizamos cuando el usuario visite la pestaña
 
-    // Cálculo de totales en tiempo real
-    document.getElementById('precioRepuestos').addEventListener('input', calcularTotal);
-    document.getElementById('precioManoObra').addEventListener('input', calcularTotal);
-    document.getElementById('precioSena').addEventListener('input', calcularTotal);
-
-    // Búsqueda en Kanban
-    document.getElementById('searchInput').addEventListener('input', filtrarTickets);
-
-    // Exportación e Importación
-    document.getElementById('export-btn').addEventListener('click', exportData);
-    document.getElementById('import-btn').addEventListener('click', importData);
-
-    // Drag and Drop en columnas Kanban
-    document.querySelectorAll('.col-content').forEach(col => {
-        col.addEventListener('dragover', allowDrop);
-        col.addEventListener('drop', (e) => {
-            const nuevoEstado = col.getAttribute('data-status');
-            drop(e, nuevoEstado);
-        });
-    });
-
-    // Delegación de eventos para botones en tarjetas Kanban (Eliminar e Imprimir)
-    document.querySelector('.kanban-board').addEventListener('click', (e) => {
-        const target = e.target;
-        if (target.classList.contains('btn-delete')) {
-            const ticketId = target.closest('.ticket-card').id;
-            borrarTicket(ticketId);
-        } else if (target.classList.contains('btn-print')) {
-            const ticketId = target.closest('.ticket-card').id;
-            imprimirPresupuesto(ticketId);
-        }
-    });
-
-    await renderKanban();
+    await seedServiciosDefault();
 });
+
+async function seedServiciosDefault() {
+    const cuenta = await db.servicios.count();
+    if (cuenta === 0) {
+        const serviciosDefault = [
+            { categoria: 'Diagnóstico', nombre: 'Diagnóstico Completo (con informe)', precioSugerido: 30000, justificacion: 'Valoración del conocimiento técnico aplicado.' },
+            { categoria: 'Software', nombre: 'Formateo Completo + Backup (25GB)', precioSugerido: 62000, justificacion: 'Equilibrio entre tiempo de instalación y seguridad.' },
+            { categoria: 'Software', nombre: 'Optimización / Limpieza de Virus', precioSugerido: 46000, justificacion: 'Análisis profundo de logs y registro.' },
+            { categoria: 'Software', nombre: 'Soporte Remoto (por hora)', precioSugerido: 36300, justificacion: 'Tasa profesional estándar para incidencias.' },
+            { categoria: 'Hardware', nombre: 'Limpieza + Pasta Térmica (PC Desktop)', precioSugerido: 46000, justificacion: 'Incluye materiales de calidad y desarme.' },
+            { categoria: 'Hardware', nombre: 'Limpieza + Pasta Térmica (Notebook/Gamer)', precioSugerido: 72000, justificacion: 'Mayor riesgo por fragilidad y pastas premium.' },
+            { categoria: 'Hardware', nombre: 'Armado de PC Básica (Home/Oficina)', precioSugerido: 82820, justificacion: 'Piso de mercado para ensamblado profesional.' },
+            { categoria: 'Hardware', nombre: 'Armado de PC Gamer / Workstation', precioSugerido: 130000, justificacion: 'Gestión de cables avanzada y tests de estrés.' },
+            { categoria: 'Hardware', nombre: 'Clonado de Disco (SATA a SSD)', precioSugerido: 77000, justificacion: 'Transferencia bit a bit con verificación.' },
+            { categoria: 'Hardware', nombre: 'Reparación de Bisagras (Mano de Obra)', precioSugerido: 108900, justificacion: 'Trabajo artesanal con alta tasa de éxito.' },
+            { categoria: 'Hardware', nombre: 'Cambio de Pantalla o Teclado (Laptops)', precioSugerido: 58000, justificacion: 'Tarifa plana por intervención en carcasas.' },
+            { categoria: 'Datos', nombre: 'Recuperación de Datos Lógica (sin lab)', precioSugerido: 105000, justificacion: 'Piso por responsabilidad sobre la información.' }
+        ];
+        await db.servicios.bulkAdd(serviciosDefault);
+        console.log("Servicios por defecto cargados.");
+    }
+}
 
 // --- NAVEGACIÓN ---
 function switchView(viewId) {
@@ -106,6 +104,7 @@ function switchView(viewId) {
 
 // --- LÓGICA DE DASHBOARD FINANCIERO ---
 let financeChartInstance = null;
+let statusChartInstance = null;
 
 async function renderDashboard() {
     const tickets = await db.tickets.toArray();
@@ -123,9 +122,8 @@ async function renderDashboard() {
 
     ticketsEntregados.forEach(t => {
         ingresosBrutos += parseFloat(t.precioTotal) || 0;
-        // Asumiendo que la ganancia neta es la mano de obra + cualquier seña extra si aplica
-        // (o simplemente restamos los repuestos del total cobrado).
-        const costoRepuestos = parseFloat(t.precioRepuestos) || 0;
+        // Usamos costoRepuestosNeto si existe (versión 2), si no, usamos el viejo precioRepuestos
+        const costoRepuestos = t.costoRepuestosNeto !== undefined ? parseFloat(t.costoRepuestosNeto) : (parseFloat(t.precioRepuestos) || 0);
         gananciaNeta += (parseFloat(t.precioTotal) || 0) - costoRepuestos;
     });
 
@@ -136,11 +134,11 @@ async function renderDashboard() {
         pendienteCobro += parseFloat(t.precioTotal) || 0;
     });
 
-    // Actualizar UI
+    // Actualizar UI con formato de moneda
     document.getElementById('metric-total-tickets').innerText = totalTickets;
-    document.getElementById('metric-gross-income').innerText = `$${ingresosBrutos.toFixed(2)}`;
-    document.getElementById('metric-net-profit').innerText = `$${gananciaNeta.toFixed(2)}`;
-    document.getElementById('metric-pending-payment').innerText = `$${pendienteCobro.toFixed(2)}`;
+    document.getElementById('metric-gross-income').innerText = formatCurrency(ingresosBrutos);
+    document.getElementById('metric-net-profit').innerText = formatCurrency(gananciaNeta);
+    document.getElementById('metric-pending-payment').innerText = formatCurrency(pendienteCobro);
 
     // Preparar datos para el gráfico (Agrupados por mes)
     const monthlyData = {};
@@ -155,7 +153,8 @@ async function renderDashboard() {
         }
 
         monthlyData[mesAnio].brutos += parseFloat(t.precioTotal) || 0;
-        monthlyData[mesAnio].netos += (parseFloat(t.precioTotal) || 0) - (parseFloat(t.precioRepuestos) || 0);
+        const costoRepuestos = t.costoRepuestosNeto !== undefined ? parseFloat(t.costoRepuestosNeto) : (parseFloat(t.precioRepuestos) || 0);
+        monthlyData[mesAnio].netos += (parseFloat(t.precioTotal) || 0) - costoRepuestos;
     });
 
     const labels = Object.keys(monthlyData);
@@ -222,15 +221,68 @@ async function renderDashboard() {
             }
         }
     });
+
+    // --- GRÁFICO DE TORTA (ESTADOS) ---
+    const ctxStatus = document.getElementById('statusChart').getContext('2d');
+
+    if (statusChartInstance) {
+        statusChartInstance.destroy();
+    }
+
+    const statusCounts = {};
+    KANBAN_STATUSES.forEach(s => statusCounts[s] = 0);
+    tickets.forEach(t => {
+        if(statusCounts[t.status] !== undefined) statusCounts[t.status]++;
+    });
+
+    statusChartInstance = new Chart(ctxStatus, {
+        type: 'pie',
+        data: {
+            labels: KANBAN_STATUSES,
+            datasets: [{
+                data: KANBAN_STATUSES.map(s => statusCounts[s]),
+                backgroundColor: [
+                    '#64748b', // Pendiente (Neutral)
+                    '#ec4899', // Pendiente Aprobación (Rosa)
+                    '#3b82f6', // En proceso (Azul)
+                    '#f59e0b', // Esperando repuestos (Naranja)
+                    '#22c55e', // Listo para entregar (Verde)
+                    '#a78bfa'  // Entregado (Morado)
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { color: '#f8fafc', font: { size: 10 } }
+                }
+            }
+        }
+    });
+}
+
+// --- LÓGICA DE MONEDA (FORMATTER) ---
+function formatCurrency(value) {
+    const num = parseFloat(value) || 0;
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(num);
 }
 
 // --- LÓGICA DE FORMULARIO (Cálculo Realtime) ---
 function calcularTotal() {
-    const repuestos = parseFloat(document.getElementById('precioRepuestos').value) || 0;
+    const repuestosNeto = parseFloat(document.getElementById('precioRepuestos').value) || 0;
+    const margen = parseFloat(document.getElementById('margenRepuestos').value) || 0;
+    const subtotalRepuestos = repuestosNeto + (repuestosNeto * margen / 100);
+
+    document.getElementById('subtotalRepuestosSpan').innerText = formatCurrency(subtotalRepuestos);
+
     const manoObra = parseFloat(document.getElementById('precioManoObra').value) || 0;
     const sena = parseFloat(document.getElementById('precioSena').value) || 0;
     
-    const total = (repuestos + manoObra) - sena;
+    const total = (subtotalRepuestos + manoObra) - sena;
     document.getElementById('precioTotal').value = total > 0 ? total : 0;
 }
 
@@ -248,14 +300,23 @@ document.getElementById('ticket-form').addEventListener('submit', async function
     e.preventDefault();
     const nuevoId = await generarId();
 
+    const clienteTel = document.getElementById('clienteTelefono').value;
+    const clienteNom = document.getElementById('clienteNombre').value;
+
+    const repuestosNeto = parseFloat(document.getElementById('precioRepuestos').value) || 0;
+    const margen = parseFloat(document.getElementById('margenRepuestos').value) || 0;
+    const subtotalRepuestos = repuestosNeto + (repuestosNeto * margen / 100);
+
     const nuevoTicket = {
         id: nuevoId,
-        clienteNombre: document.getElementById('clienteNombre').value,
-        clienteTelefono: document.getElementById('clienteTelefono').value,
+        clienteNombre: clienteNom,
+        clienteTelefono: clienteTel,
+        equipoSerie: document.getElementById('equipoSerie').value,
         equipoModelo: document.getElementById('equipoModelo').value,
         obsInicial: document.getElementById('obsInicial').value,
         trabajoRealizar: document.getElementById('trabajoRealizar').value,
-        precioRepuestos: document.getElementById('precioRepuestos').value,
+        precioRepuestos: subtotalRepuestos, // Guardamos el valor final de venta del repuesto
+        costoRepuestosNeto: repuestosNeto, // Guardamos el costo real para calcular ganancias precisas
         precioManoObra: document.getElementById('precioManoObra').value,
         precioSena: document.getElementById('precioSena').value,
         precioTotal: document.getElementById('precioTotal').value,
@@ -264,14 +325,181 @@ document.getElementById('ticket-form').addEventListener('submit', async function
         fechaEntrega: null // La garantía empieza cuando esto se rellena
     };
 
+    // Guardar o actualizar cliente
+    await db.clientes.put({ telefono: clienteTel, nombre: clienteNom });
+
     await db.tickets.add(nuevoTicket);
     
+    // Actualizar datalist para futuras búsquedas
+    await cargarClientesDataList();
+
     // Limpiar formulario y mostrar notificación
     this.reset();
+    document.getElementById('historialEquipoContainer').innerHTML = '';
     calcularTotal(); // Resetea el total a 0
     showToast(`¡Ticket ${nuevoTicket.id} creado con éxito!`);
     switchView('kanban-view');
 });
+
+// --- LÓGICA DE CLIENTES E HISTORIAL ---
+async function cargarClientesDataList() {
+    const clientes = await db.clientes.toArray();
+    const dataList = document.getElementById('clientesList');
+    if (dataList) {
+        dataList.innerHTML = '';
+        clientes.forEach(c => {
+            const option = document.createElement('option');
+            option.value = c.telefono;
+            option.textContent = c.nombre;
+            dataList.appendChild(option);
+        });
+    }
+}
+
+async function buscarClientePorTelefono() {
+    const telefono = document.getElementById('clienteTelefono').value;
+    if (telefono) {
+        const cliente = await db.clientes.get(telefono);
+        if (cliente) {
+            document.getElementById('clienteNombre').value = cliente.nombre;
+            showToast(`Cliente encontrado: ${cliente.nombre}`);
+        }
+    }
+}
+
+async function buscarHistorialEquipo() {
+    const serie = document.getElementById('equipoSerie').value;
+    const container = document.getElementById('historialEquipoContainer');
+
+    if (!serie || serie.trim() === '') {
+        container.innerHTML = '';
+        return;
+    }
+
+    const ticketsPrevios = await db.tickets.where('equipoSerie').equals(serie).toArray();
+
+    if (ticketsPrevios.length > 0) {
+        let html = `<strong style="color: var(--accent-electric)">Atención: Este equipo tiene ${ticketsPrevios.length} ingreso(s) previo(s).</strong><ul style="padding-left: 20px; margin-top:5px; color: var(--text-muted)">`;
+        ticketsPrevios.forEach(t => {
+            const fechaStr = new Date(t.fecha).toLocaleDateString();
+            html += `<li>[${fechaStr}] ${t.id} - Falla: ${t.trabajoRealizar.substring(0,30)}... (${t.status})</li>`;
+        });
+        html += `</ul>`;
+        container.innerHTML = html;
+    } else {
+        container.innerHTML = `<span style="color: var(--text-muted)">Primer ingreso para este número de serie.</span>`;
+    }
+}
+
+// Cargar datalist al inicio
+document.addEventListener('DOMContentLoaded', cargarClientesDataList);
+
+// --- GESTIÓN DE SERVICIOS PREDEFINIDOS ---
+async function renderServicios() {
+    const servicios = await db.servicios.toArray();
+
+    // Rellenar tabla en el dashboard
+    const tableBody = document.querySelector('#servicesTable tbody');
+    if (tableBody) {
+        tableBody.innerHTML = '';
+        servicios.forEach(s => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${s.categoria}</td>
+                <td>
+                    <strong>${s.nombre}</strong>
+                    <br><small class="text-muted">${s.justificacion || ''}</small>
+                </td>
+                <td style="color: var(--accent-neon); font-weight: bold;">$${s.precioSugerido}</td>
+                <td>
+                    <button class="btn-delete" onclick="borrarServicio(${s.id})">Eliminar</button>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+    }
+
+    // Rellenar select en Nuevo Ticket
+    const select = document.getElementById('servicioSelect');
+    if (select) {
+        // Guardar la primera opción
+        const defaultOption = select.options[0];
+        select.innerHTML = '';
+        select.appendChild(defaultOption);
+
+        // Agrupar por categoría (opcional pero queda más prolijo)
+        const categorias = [...new Set(servicios.map(s => s.categoria))];
+
+        categorias.forEach(cat => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = cat;
+
+            servicios.filter(s => s.categoria === cat).forEach(s => {
+                const option = document.createElement('option');
+                option.value = s.id;
+                option.textContent = `${s.nombre} - $${s.precioSugerido}`;
+                // Guardamos data extra en los atributos para sacarla fácil al seleccionar
+                option.dataset.precio = s.precioSugerido;
+                option.dataset.nombre = s.nombre;
+                optgroup.appendChild(option);
+            });
+
+            select.appendChild(optgroup);
+        });
+    }
+}
+
+async function aplicarServicioSeleccionado() {
+    const select = document.getElementById('servicioSelect');
+    if (select.value) {
+        const option = select.options[select.selectedIndex];
+        const nombreServicio = option.dataset.nombre;
+        const precioSugerido = option.dataset.precio;
+
+        // Auto-completar campos
+        const trabajoActual = document.getElementById('trabajoRealizar').value;
+        if (!trabajoActual.includes(nombreServicio)) {
+            document.getElementById('trabajoRealizar').value = trabajoActual ? `${trabajoActual}\n+ ${nombreServicio}` : nombreServicio;
+        }
+
+        document.getElementById('precioManoObra').value = precioSugerido;
+        calcularTotal();
+    }
+}
+
+async function mostrarModalServicio() {
+    const categoria = prompt("Categoría del servicio (Ej: Hardware, Software, Diagnóstico):");
+    if (!categoria) return;
+
+    const nombre = prompt("Nombre del servicio:");
+    if (!nombre) return;
+
+    const precioStr = prompt("Precio sugerido ($):");
+    if (!precioStr) return;
+    const precio = parseFloat(precioStr);
+
+    const justificacion = prompt("Justificación o descripción (Opcional):") || "";
+
+    await db.servicios.add({
+        categoria,
+        nombre,
+        precioSugerido: precio,
+        justificacion
+    });
+
+    showToast("Servicio agregado exitosamente");
+    await renderServicios();
+}
+
+async function borrarServicio(id) {
+    if(confirm("¿Estás seguro de eliminar este servicio? No afectará a los tickets ya creados.")) {
+        await db.servicios.delete(id);
+        await renderServicios();
+    }
+}
+
+// Cargar servicios al inicio
+document.addEventListener('DOMContentLoaded', renderServicios);
 
 // --- NOTIFICACIONES (TOAST) ---
 function showToast(message, duration = 3000) {
@@ -341,7 +569,7 @@ async function renderKanban(filtro = '') {
             <div class="tc-equipo">💻 ${ticket.equipoModelo}</div>
             <div class="tc-footer">
                 <span class="tc-garantia ${garantiaClase}">${garantiaTexto}</span>
-                <span class="tc-total">$${ticket.precioTotal}</span>
+                <span class="tc-total">${formatCurrency(ticket.precioTotal)}</span>
                 <div style="display:flex; gap:0.5rem">
                     <button class="btn-print" title="Imprimir">🖨️</button>
                     <button class="btn-delete">Eliminar</button>
@@ -442,19 +670,19 @@ async function imprimirPresupuesto(id) {
         <div class="print-totals">
             <div class="pt-row">
                 <span>Costo Repuestos:</span>
-                <span>$${ticket.precioRepuestos || 0}</span>
+                <span>${formatCurrency(ticket.precioRepuestos || 0)}</span>
             </div>
             <div class="pt-row">
                 <span>Mano de Obra:</span>
-                <span>$${ticket.precioManoObra || 0}</span>
+                <span>${formatCurrency(ticket.precioManoObra || 0)}</span>
             </div>
             <div class="pt-row">
                 <span>Seña Dejada:</span>
-                <span>$${ticket.precioSena || 0}</span>
+                <span>${formatCurrency(ticket.precioSena || 0)}</span>
             </div>
             <div class="pt-row pt-final">
                 <span>Total a Cobrar:</span>
-                <span>$${ticket.precioTotal}</span>
+                <span>${formatCurrency(ticket.precioTotal)}</span>
             </div>
         </div>
 
@@ -463,11 +691,6 @@ async function imprimirPresupuesto(id) {
             <p>1. El presupuesto tiene una validez de 15 días corridos a partir de la fecha de emisión.</p>
             <p>2. Pasados los 90 días desde que se notifica la reparación, si el equipo no es retirado, la empresa no se responsabiliza por el mismo y podrá disponer de él para cubrir los gastos de almacenamiento.</p>
             <p>3. La garantía sobre la reparación es de 30 días y no cubre fallas causadas por mal uso o factores externos (golpes, derrames de líquidos, etc).</p>
-        </div>
-
-        <div class="print-signatures">
-            <div class="sig-box">Firma Técnico / Local</div>
-            <div class="sig-box">Firma Cliente</div>
         </div>
     `;
 
