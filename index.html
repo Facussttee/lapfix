@@ -15,6 +15,8 @@
             <nav class="nav-menu">
                 <button id="nav-ticket" class="nav-link active" onclick="switchView('ticket-view')"><span>📝</span><span class="nav-text">Nuevo Ticket</span></button>
                 <button id="nav-kanban" class="nav-link" onclick="switchView('kanban-view')"><span>📋</span><span class="nav-text">Tablero Kanban</span></button>
+                <button id="nav-dashboard" class="nav-link" onclick="switchView('dashboard-view')"><span>📊</span><span class="nav-text">Dashboard</span></button>
+                <button id="nav-settings" class="nav-link" onclick="switchView('settings-view')"><span>⚙️</span><span class="nav-text">Base de Datos</span></button>
             </nav>
             <div class="sidebar-footer">
                 <button id="sidebar-toggle" class="nav-link"><span>↔️</span><span class="nav-text">Ocultar Menú</span></button>
@@ -100,6 +102,14 @@
                         <div class="col-content" id="list-Pendiente" ondrop="drop(event, 'Pendiente')" ondragover="allowDrop(event)"></div>
                     </div>
 
+                    <!-- Columna Pendiente Aprobación -->
+                    <div class="kanban-col">
+                        <div class="col-header approval-header">
+                            Pendiente Aprob. (<span id="count-Pendiente-Aprobación">0</span>)
+                        </div>
+                        <div class="col-content" id="list-Pendiente-Aprobación" ondrop="drop(event, 'Pendiente Aprobación')" ondragover="allowDrop(event)"></div>
+                    </div>
+
                     <!-- Columna En Proceso -->
                     <div class="kanban-col">
                         <div class="col-header progress-header">
@@ -134,11 +144,74 @@
                 </div>
             </section>
 
+            <!-- VISTA: Dashboard de Finanzas -->
+            <section id="dashboard-view" class="view-section">
+                <div class="section-header">
+                    <h1>Dashboard Financiero</h1>
+                    <p>Resumen del rendimiento y métricas de tu negocio.</p>
+                </div>
+
+                <div class="dashboard-grid">
+                    <!-- Tarjetas de Métricas -->
+                    <div class="card metric-card">
+                        <h3>Tickets Totales</h3>
+                        <div class="metric-value" id="metric-total-tickets">0</div>
+                    </div>
+                    <div class="card metric-card">
+                        <h3>Ingresos Brutos</h3>
+                        <div class="metric-value" id="metric-gross-income">$0</div>
+                        <p class="metric-subtitle">Mano de Obra + Repuestos</p>
+                    </div>
+                    <div class="card metric-card">
+                        <h3>Ganancia Neta (M. Obra)</h3>
+                        <div class="metric-value text-neon" id="metric-net-profit">$0</div>
+                        <p class="metric-subtitle">Tu ganancia real</p>
+                    </div>
+                    <div class="card metric-card">
+                        <h3>Pendiente de Cobro</h3>
+                        <div class="metric-value text-warning" id="metric-pending-payment">$0</div>
+                        <p class="metric-subtitle">Equipos listos, no entregados</p>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 2rem;">
+                    <h2>Ingresos Mensuales</h2>
+                    <div class="chart-container">
+                        <canvas id="financeChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VISTA: Ajustes y Respaldo -->
+            <section id="settings-view" class="view-section">
+                <div class="section-header">
+                    <h1>Base de Datos & Seguridad</h1>
+                    <p>Crea copias de seguridad de tus tickets o restaura datos desde un respaldo previo.</p>
+                </div>
+
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h2>Exportar Datos</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Descarga un archivo seguro con todos tus tickets para guardarlo en un pendrive o en la nube.</p>
+                    <button class="btn-primary" onclick="exportData()">💾 Descargar Respaldo</button>
+                </div>
+
+                <div class="card">
+                    <h2>Importar Datos</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Restaura tus tickets desde un archivo de respaldo (.json).</p>
+                    <input type="file" id="importFile" accept=".json" style="margin-bottom: 1rem;">
+                    <button class="btn-primary" onclick="importData()">📂 Restaurar Respaldo</button>
+                </div>
+            </section>
+
         </main>
     </div>
 
+    <!-- Contenedor oculto para impresión de presupuestos/tickets -->
+    <div id="print-container"></div>
+
     <!-- Tu script principal -->
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="main.js"></script>
 </body>
 </html>
