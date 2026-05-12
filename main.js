@@ -6,7 +6,7 @@ db.version(1).stores({
     tickets: 'id, status, clienteNombre, fecha' 
 });
 
-const KANBAN_STATUSES = ['Pendiente', 'En Proceso', 'Esperando Repuestos', 'Listo para Entregar', 'Entregado'];
+const KANBAN_STATUSES = ['Pendiente', 'Pendiente Aprobación', 'En Proceso', 'Esperando Repuestos', 'Listo para Entregar', 'Entregado'];
 
 // Al cargar la ventana
 document.addEventListener('DOMContentLoaded', async () => {
@@ -58,6 +58,131 @@ function switchView(viewId) {
         document.getElementById('nav-kanban').classList.add('active');
         renderKanban(); // Refrescar por si hubo cambios
     }
+    if(viewId === 'settings-view') document.getElementById('nav-settings').classList.add('active');
+    if(viewId === 'dashboard-view') {
+        document.getElementById('nav-dashboard').classList.add('active');
+        renderDashboard();
+    }
+}
+
+// --- LÓGICA DE DASHBOARD FINANCIERO ---
+let financeChartInstance = null;
+
+async function renderDashboard() {
+    const tickets = await db.tickets.toArray();
+
+    // Métricas básicas
+    const totalTickets = tickets.length;
+
+    // Solo consideramos para ingresos/ganancias los tickets que ya están facturados o entregados.
+    // Opcional: Podrías considerar también los "Listos para Entregar" si así lo deseas, pero
+    // comúnmente el ingreso real es cuando se entrega.
+    const ticketsEntregados = tickets.filter(t => t.status === 'Entregado');
+
+    let ingresosBrutos = 0;
+    let gananciaNeta = 0;
+
+    ticketsEntregados.forEach(t => {
+        ingresosBrutos += parseFloat(t.precioTotal) || 0;
+        // Asumiendo que la ganancia neta es la mano de obra + cualquier seña extra si aplica
+        // (o simplemente restamos los repuestos del total cobrado).
+        const costoRepuestos = parseFloat(t.precioRepuestos) || 0;
+        gananciaNeta += (parseFloat(t.precioTotal) || 0) - costoRepuestos;
+    });
+
+    // Pendiente de cobro (Listos para entregar)
+    let pendienteCobro = 0;
+    const ticketsListos = tickets.filter(t => t.status === 'Listo para Entregar');
+    ticketsListos.forEach(t => {
+        pendienteCobro += parseFloat(t.precioTotal) || 0;
+    });
+
+    // Actualizar UI
+    document.getElementById('metric-total-tickets').innerText = totalTickets;
+    document.getElementById('metric-gross-income').innerText = `$${ingresosBrutos.toFixed(2)}`;
+    document.getElementById('metric-net-profit').innerText = `$${gananciaNeta.toFixed(2)}`;
+    document.getElementById('metric-pending-payment').innerText = `$${pendienteCobro.toFixed(2)}`;
+
+    // Preparar datos para el gráfico (Agrupados por mes)
+    const monthlyData = {};
+    const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+    ticketsEntregados.forEach(t => {
+        const fecha = new Date(t.fechaEntrega || t.fecha);
+        const mesAnio = `${monthNames[fecha.getMonth()]} ${fecha.getFullYear()}`;
+
+        if (!monthlyData[mesAnio]) {
+            monthlyData[mesAnio] = { brutos: 0, netos: 0 };
+        }
+
+        monthlyData[mesAnio].brutos += parseFloat(t.precioTotal) || 0;
+        monthlyData[mesAnio].netos += (parseFloat(t.precioTotal) || 0) - (parseFloat(t.precioRepuestos) || 0);
+    });
+
+    const labels = Object.keys(monthlyData);
+    const brutosData = labels.map(l => monthlyData[l].brutos);
+    const netosData = labels.map(l => monthlyData[l].netos);
+
+    // Dibujar el gráfico con Chart.js
+    const ctx = document.getElementById('financeChart').getContext('2d');
+
+    // Si ya existe un gráfico previo, lo destruimos para evitar superposición
+    if (financeChartInstance) {
+        financeChartInstance.destroy();
+    }
+
+    financeChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels.length > 0 ? labels : ['Sin datos aún'],
+            datasets: [
+                {
+                    label: 'Ingresos Brutos',
+                    data: brutosData.length > 0 ? brutosData : [0],
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)', // Electric blue
+                    borderColor: 'rgb(59, 130, 246)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Ganancia Neta',
+                    data: netosData.length > 0 ? netosData : [0],
+                    backgroundColor: 'rgba(34, 197, 94, 0.5)', // Neon green
+                    borderColor: 'rgb(34, 197, 94)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#94a3b8'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#94a3b8'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#f8fafc'
+                    }
+                }
+            }
+        }
+    });
 }
 
 // --- LÓGICA DE FORMULARIO (Cálculo Realtime) ---
@@ -178,7 +303,10 @@ async function renderKanban(filtro = '') {
             <div class="tc-footer">
                 <span class="tc-garantia ${garantiaClase}">${garantiaTexto}</span>
                 <span class="tc-total">$${ticket.precioTotal}</span>
-                <button class="btn-delete" onclick="borrarTicket('${ticket.id}')">Eliminar</button>
+                <div style="display:flex; gap:0.5rem">
+                    <button class="btn-print" onclick="imprimirPresupuesto('${ticket.id}')" title="Imprimir">🖨️</button>
+                    <button class="btn-delete" onclick="borrarTicket('${ticket.id}')">Eliminar</button>
+                </div>
             </div>
         `;
         
@@ -235,4 +363,126 @@ async function drop(ev, nuevoEstado) {
         // Repintamos el tablero sin recargar la página
         renderKanban(document.getElementById('searchInput').value);
     }
+}
+
+// --- IMPRESIÓN DE PRESUPUESTO ---
+async function imprimirPresupuesto(id) {
+    const ticket = await db.tickets.get(id);
+    if (!ticket) return;
+
+    const printContainer = document.getElementById('print-container');
+    const fechaActual = new Date().toLocaleDateString('es-ES');
+
+    printContainer.innerHTML = `
+        <div class="print-header">
+            <div class="print-logo">LAP<span>FIX</span></div>
+            <div>
+                <h2>Presupuesto / Orden de Servicio</h2>
+                <p>Fecha: ${fechaActual}</p>
+                <p><strong>Ticket ID:</strong> ${ticket.id}</p>
+            </div>
+        </div>
+
+        <div class="print-section">
+            <h3>Datos del Cliente</h3>
+            <p><strong>Nombre:</strong> ${ticket.clienteNombre}</p>
+            <p><strong>Teléfono:</strong> ${ticket.clienteTelefono}</p>
+        </div>
+
+        <div class="print-section">
+            <h3>Datos del Equipo</h3>
+            <p><strong>Modelo:</strong> ${ticket.equipoModelo}</p>
+            <p><strong>Observaciones:</strong> ${ticket.obsInicial || 'N/A'}</p>
+        </div>
+
+        <div class="print-section">
+            <h3>Trabajo a Realizar / Falla</h3>
+            <p>${ticket.trabajoRealizar}</p>
+        </div>
+
+        <div class="print-totals">
+            <div class="pt-row">
+                <span>Costo Repuestos:</span>
+                <span>$${ticket.precioRepuestos || 0}</span>
+            </div>
+            <div class="pt-row">
+                <span>Mano de Obra:</span>
+                <span>$${ticket.precioManoObra || 0}</span>
+            </div>
+            <div class="pt-row">
+                <span>Seña Dejada:</span>
+                <span>$${ticket.precioSena || 0}</span>
+            </div>
+            <div class="pt-row pt-final">
+                <span>Total a Cobrar:</span>
+                <span>$${ticket.precioTotal}</span>
+            </div>
+        </div>
+
+        <div class="print-terms">
+            <h4>Términos y Condiciones</h4>
+            <p>1. El presupuesto tiene una validez de 15 días corridos a partir de la fecha de emisión.</p>
+            <p>2. Pasados los 90 días desde que se notifica la reparación, si el equipo no es retirado, la empresa no se responsabiliza por el mismo y podrá disponer de él para cubrir los gastos de almacenamiento.</p>
+            <p>3. La garantía sobre la reparación es de 30 días y no cubre fallas causadas por mal uso o factores externos (golpes, derrames de líquidos, etc).</p>
+        </div>
+
+        <div class="print-signatures">
+            <div class="sig-box">Firma Técnico / Local</div>
+            <div class="sig-box">Firma Cliente</div>
+        </div>
+    `;
+
+    window.print();
+}
+
+// --- RESPALDO Y RESTAURACIÓN (BACKUP/RESTORE) ---
+async function exportData() {
+    try {
+        const tickets = await db.tickets.toArray();
+        const dataStr = JSON.stringify(tickets, null, 2);
+        const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+
+        const exportFileDefaultName = `lapfix_backup_${new Date().toISOString().split('T')[0]}.json`;
+
+        const linkElement = document.createElement('a');
+        linkElement.setAttribute('href', dataUri);
+        linkElement.setAttribute('download', exportFileDefaultName);
+        linkElement.click();
+
+        showToast("¡Respaldo descargado con éxito!");
+    } catch (error) {
+        console.error("Error al exportar datos:", error);
+        showToast("Error al exportar los datos.");
+    }
+}
+
+async function importData() {
+    const fileInput = document.getElementById('importFile');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        showToast("Por favor, selecciona un archivo de respaldo (.json) primero.");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function(event) {
+        try {
+            const importedTickets = JSON.parse(event.target.result);
+
+            if (!Array.isArray(importedTickets)) {
+                throw new Error("El formato del archivo no es válido.");
+            }
+
+            if (confirm("¿Estás seguro de restaurar estos datos? Los tickets actuales podrían ser reemplazados.")) {
+                await db.tickets.bulkPut(importedTickets);
+                showToast(`¡Se han restaurado ${importedTickets.length} tickets!`);
+                fileInput.value = ''; // Clear input
+            }
+        } catch (error) {
+            console.error("Error al importar datos:", error);
+            showToast("Error al procesar el archivo. Asegúrate de que es un respaldo válido.");
+        }
+    };
+    reader.readAsText(file);
 }

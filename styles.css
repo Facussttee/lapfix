@@ -281,6 +281,11 @@ select:focus {
     color: var(--accent-neutral);
 }
 
+.approval-header {
+    border-color: #ec4899; /* Rosa para llamar la atención */
+    color: #ec4899;
+}
+
 .progress-header {
     border-color: var(--accent-electric);
     color: var(--accent-electric);
@@ -396,6 +401,48 @@ select:focus {
     text-decoration: underline;
 }
 
+/* Dashboard */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.metric-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.metric-card h3 {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.metric-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.text-neon { color: var(--accent-neon); }
+.text-warning { color: var(--accent-warning); }
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+
 /* Toast / Notificaciones */
 #toast-container {
     position: fixed;
@@ -444,5 +491,106 @@ select:focus {
         flex-direction: column;
         height: auto;
         gap: 2rem;
+    }
+}
+
+/* Impresión */
+#print-container {
+    display: none; /* Oculto en pantalla normal */
+}
+
+.btn-print {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0 0.3rem;
+}
+
+.btn-print:hover {
+    transform: scale(1.1);
+}
+
+@media print {
+    body {
+        background-color: white !important;
+        color: black !important;
+    }
+
+    .app-container, #toast-container {
+        display: none !important;
+    }
+
+    #print-container {
+        display: block !important;
+        padding: 2cm;
+        font-family: Arial, sans-serif;
+    }
+
+    .print-header {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .print-logo {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+    .print-logo span {
+        color: #666;
+    }
+
+    .print-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .print-section h3 {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 1.2rem;
+    }
+
+    .print-totals {
+        border: 1px solid #ccc;
+        padding: 1rem;
+        margin-top: 2rem;
+        width: 50%;
+        margin-left: auto;
+    }
+
+    .pt-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+
+    .pt-final {
+        border-top: 2px solid #000;
+        padding-top: 0.5rem;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    .print-terms {
+        margin-top: 3rem;
+        font-size: 0.8rem;
+        color: #555;
+    }
+
+    .print-signatures {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 5rem;
+    }
+
+    .sig-box {
+        border-top: 1px solid #000;
+        width: 200px;
+        text-align: center;
+        padding-top: 0.5rem;
     }
 }
