@@ -96,7 +96,7 @@
                         </div>
                         <div class="form-group">
                             <label for="precioSena">Seña Dejada ($)</label>
-                            <input type="number" id="precioSena" min="0" oninput="calcularTotal()">
+                            <input type="number" id="precioSena" min="0">
                         </div>
                         <div class="form-group total-group">
                             <label for="precioTotal">Total a Cobrar ($)</label>
@@ -120,7 +120,7 @@
                     </div>
                     <div class="search-box">
                         <span>🔍</span>
-                        <input type="text" id="searchInput" onkeyup="filtrarTickets()" placeholder="Buscar por ID o cliente...">
+                        <input type="text" id="searchInput" placeholder="Buscar por ID o cliente...">
                     </div>
                 </div>
 
@@ -130,7 +130,7 @@
                         <div class="col-header pending-header">
                             Pendiente (<span id="count-Pendiente">0</span>)
                         </div>
-                        <div class="col-content" id="list-Pendiente" ondrop="drop(event, 'Pendiente')" ondragover="allowDrop(event)"></div>
+                        <div class="col-content" id="list-Pendiente" data-status="Pendiente"></div>
                     </div>
 
                     <!-- Columna Pendiente Aprobación -->
@@ -138,7 +138,7 @@
                         <div class="col-header approval-header">
                             Pendiente Aprob. (<span id="count-Pendiente-Aprobación">0</span>)
                         </div>
-                        <div class="col-content" id="list-Pendiente-Aprobación" ondrop="drop(event, 'Pendiente Aprobación')" ondragover="allowDrop(event)"></div>
+                        <div class="col-content" id="list-Pendiente-Aprobación" data-status="Pendiente Aprobación"></div>
                     </div>
 
                     <!-- Columna En Proceso -->
@@ -146,7 +146,7 @@
                         <div class="col-header progress-header">
                             En Proceso (<span id="count-En-Proceso">0</span>)
                         </div>
-                        <div class="col-content" id="list-En-Proceso" ondrop="drop(event, 'En Proceso')" ondragover="allowDrop(event)"></div>
+                        <div class="col-content" id="list-En-Proceso" data-status="En Proceso"></div>
                     </div>
 
                     <!-- Columna Esperando Repuestos -->
@@ -154,7 +154,7 @@
                         <div class="col-header parts-header">
                             Esperando Repuestos (<span id="count-Esperando-Repuestos">0</span>)
                         </div>
-                        <div class="col-content" id="list-Esperando-Repuestos" ondrop="drop(event, 'Esperando Repuestos')" ondragover="allowDrop(event)"></div>
+                        <div class="col-content" id="list-Esperando-Repuestos" data-status="Esperando Repuestos"></div>
                     </div>
 
                     <!-- Columna Listo para Entregar -->
@@ -162,7 +162,7 @@
                         <div class="col-header done-header">
                             Listo para Entregar (<span id="count-Listo-para-Entregar">0</span>)
                         </div>
-                        <div class="col-content" id="list-Listo-para-Entregar" ondrop="drop(event, 'Listo para Entregar')" ondragover="allowDrop(event)"></div>
+                        <div class="col-content" id="list-Listo-para-Entregar" data-status="Listo para Entregar"></div>
                     </div>
 
                     <!-- Columna Entregado -->
@@ -170,7 +170,7 @@
                         <div class="col-header delivered-header">
                             Entregado (<span id="count-Entregado">0</span>)
                         </div>
-                        <div class="col-content" id="list-Entregado" ondrop="drop(event, 'Entregado')" ondragover="allowDrop(event)"></div>
+                        <div class="col-content" id="list-Entregado" data-status="Entregado"></div>
                     </div>
                 </div>
             </section>
@@ -252,14 +252,14 @@
                 <div class="card" style="margin-bottom: 2rem;">
                     <h2>Exportar Datos</h2>
                     <p style="color: var(--text-muted); margin-bottom: 1rem;">Descarga un archivo seguro con todos tus tickets para guardarlo en un pendrive o en la nube.</p>
-                    <button class="btn-primary" onclick="exportData()">💾 Descargar Respaldo</button>
+                    <button id="export-btn" class="btn-primary">💾 Descargar Respaldo</button>
                 </div>
 
                 <div class="card">
                     <h2>Importar Datos</h2>
                     <p style="color: var(--text-muted); margin-bottom: 1rem;">Restaura tus tickets desde un archivo de respaldo (.json).</p>
                     <input type="file" id="importFile" accept=".json" style="margin-bottom: 1rem;">
-                    <button class="btn-primary" onclick="importData()">📂 Restaurar Respaldo</button>
+                    <button id="import-btn" class="btn-primary">📂 Restaurar Respaldo</button>
                 </div>
             </section>
 

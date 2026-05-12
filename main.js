@@ -546,11 +546,11 @@ async function renderKanban(filtro = '') {
     });
 
     // Filtrar y renderizar
-    const tickets = await db.tickets.toArray();
-    const ticketsFiltrados = tickets.filter(t => 
-        t.id.toLowerCase().includes(filtro.toLowerCase()) || 
-        t.clienteNombre.toLowerCase().includes(filtro.toLowerCase())
-    );
+    const lowerFiltro = filtro.toLowerCase();
+    const ticketsFiltrados = await db.tickets.filter(t =>
+        t.id.toLowerCase().includes(lowerFiltro) ||
+        t.clienteNombre.toLowerCase().includes(lowerFiltro)
+    ).toArray();
 
     ticketsFiltrados.forEach(ticket => {
         const { text: garantiaTexto, className: garantiaClase } = getWarrantyStatus(ticket);
@@ -559,7 +559,7 @@ async function renderKanban(filtro = '') {
         card.className = 'ticket-card';
         card.draggable = true;
         card.id = ticket.id;
-        card.ondragstart = (e) => drag(e);
+        card.addEventListener('dragstart', drag);
 
         card.innerHTML = `
             <div class="tc-header">
@@ -571,8 +571,8 @@ async function renderKanban(filtro = '') {
                 <span class="tc-garantia ${garantiaClase}">${garantiaTexto}</span>
                 <span class="tc-total">${formatCurrency(ticket.precioTotal)}</span>
                 <div style="display:flex; gap:0.5rem">
-                    <button class="btn-print" onclick="imprimirPresupuesto('${ticket.id}')" title="Imprimir">🖨️</button>
-                    <button class="btn-delete" onclick="borrarTicket('${ticket.id}')">Eliminar</button>
+                    <button class="btn-print" title="Imprimir">🖨️</button>
+                    <button class="btn-delete">Eliminar</button>
                 </div>
             </div>
         `;
