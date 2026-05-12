@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LAPFIX - Sistema de Gestión</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
 </head>
 <body>
 
@@ -13,9 +15,9 @@
         <aside class="sidebar">
             <div class="logo">LAP<span>FIX</span></div>
             <nav class="nav-menu">
-                <button id="nav-ticket" class="nav-link active" onclick="switchView('ticket-view')"><span>📝</span><span class="nav-text">Nuevo Ticket</span></button>
+                <button id="nav-dashboard" class="nav-link active" onclick="switchView('dashboard-view')"><span>📊</span><span class="nav-text">Dashboard</span></button>
+                <button id="nav-ticket" class="nav-link" onclick="switchView('ticket-view')"><span>📝</span><span class="nav-text">Nuevo Ticket</span></button>
                 <button id="nav-kanban" class="nav-link" onclick="switchView('kanban-view')"><span>📋</span><span class="nav-text">Tablero Kanban</span></button>
-                <button id="nav-dashboard" class="nav-link" onclick="switchView('dashboard-view')"><span>📊</span><span class="nav-text">Dashboard</span></button>
                 <button id="nav-settings" class="nav-link" onclick="switchView('settings-view')"><span>⚙️</span><span class="nav-text">Base de Datos</span></button>
             </nav>
             <div class="sidebar-footer">
@@ -27,7 +29,7 @@
         <main class="main-content">
             
             <!-- VISTA: Formulario de Ingreso -->
-            <section id="ticket-view" class="view-section active">
+            <section id="ticket-view" class="view-section">
                 <div class="section-header">
                     <h1>Ingreso de Equipo</h1>
                     <p>Completá los datos para generar un nuevo ticket.</p>
@@ -35,33 +37,62 @@
                 
                 <div class="card">
                     <form id="ticket-form" class="form-grid">
+                        <!-- Autocompletado DataList para Clientes -->
+                        <datalist id="clientesList"></datalist>
+
+                        <div class="form-group">
+                            <label for="clienteTelefono">Teléfono del Cliente (Buscador)</label>
+                            <input type="tel" id="clienteTelefono" list="clientesList" required onchange="buscarClientePorTelefono()" placeholder="Ej: 1122334455">
+                            <small class="text-muted">Si el cliente ya existe, se autocompletará el nombre.</small>
+                        </div>
                         <div class="form-group">
                             <label for="clienteNombre">Nombre del Cliente</label>
                             <input type="text" id="clienteNombre" required>
                         </div>
+
                         <div class="form-group">
-                            <label for="clienteTelefono">Teléfono</label>
-                            <input type="tel" id="clienteTelefono" required>
+                            <label for="equipoSerie">Número de Serie (Historial)</label>
+                            <input type="text" id="equipoSerie" onchange="buscarHistorialEquipo()" placeholder="Opcional">
+                            <div id="historialEquipoContainer" style="font-size: 0.8rem; margin-top: 0.5rem;"></div>
                         </div>
                         <div class="form-group">
                             <label for="equipoModelo">Equipo (Marca y Modelo)</label>
                             <input type="text" id="equipoModelo" required>
                         </div>
+
                         <div class="form-group full-width">
                             <label for="obsInicial">Observaciones Iniciales (Estado estético, accesorios, etc.)</label>
                             <textarea id="obsInicial" rows="3"></textarea>
                         </div>
+
+                        <div class="form-group full-width">
+                            <label for="servicioSelect">Seleccionar Servicio Predefinido (Opcional)</label>
+                            <select id="servicioSelect" onchange="aplicarServicioSeleccionado()">
+                                <option value="">-- Selecciona un servicio de tu lista --</option>
+                                <!-- Llenado por JS -->
+                            </select>
+                        </div>
+
                         <div class="form-group full-width">
                             <label for="trabajoRealizar">Falla Reportada / Trabajo a Realizar</label>
                             <textarea id="trabajoRealizar" rows="3" required></textarea>
+                            <small class="text-muted">Podés modificar este texto aunque hayas seleccionado un servicio.</small>
                         </div>
+
                         <div class="form-group">
-                            <label for="precioRepuestos">Costo Repuestos ($)</label>
+                            <label for="precioRepuestos">Costo Repuestos Neto ($)</label>
                             <input type="number" id="precioRepuestos" min="0" oninput="calcularTotal()">
+                            <small class="text-muted">Costo real de los materiales.</small>
                         </div>
                         <div class="form-group">
-                            <label for="precioManoObra">Mano de Obra ($)</label>
+                            <label for="margenRepuestos">Margen sobre Repuestos (%)</label>
+                            <input type="number" id="margenRepuestos" min="0" value="0" oninput="calcularTotal()">
+                            <small class="text-muted">Subtotal Repuestos con Margen: <span id="subtotalRepuestosSpan" style="color:var(--accent-neon); font-weight:bold">$0.00</span></small>
+                        </div>
+                        <div class="form-group">
+                            <label for="precioManoObra">Costo Mano de Obra ($)</label>
                             <input type="number" id="precioManoObra" min="0" oninput="calcularTotal()">
+                            <small class="text-muted">Si seleccionaste un servicio, este valor se precargó automáticamente.</small>
                         </div>
                         <div class="form-group">
                             <label for="precioSena">Seña Dejada ($)</label>
@@ -145,7 +176,7 @@
             </section>
 
             <!-- VISTA: Dashboard de Finanzas -->
-            <section id="dashboard-view" class="view-section">
+            <section id="dashboard-view" class="view-section active">
                 <div class="section-header">
                     <h1>Dashboard Financiero</h1>
                     <p>Resumen del rendimiento y métricas de tu negocio.</p>
@@ -174,11 +205,40 @@
                     </div>
                 </div>
 
-                <div class="card" style="margin-top: 2rem;">
-                    <h2>Ingresos Mensuales</h2>
-                    <div class="chart-container">
-                        <canvas id="financeChart"></canvas>
+                <div class="dashboard-grid" style="margin-top: 2rem; grid-template-columns: 2fr 1fr;">
+                    <div class="card">
+                        <h2>Ingresos Mensuales</h2>
+                        <div class="chart-container">
+                            <canvas id="financeChart"></canvas>
+                        </div>
                     </div>
+                    <div class="card">
+                        <h2>Estado de Tickets</h2>
+                        <div class="chart-container" style="height: 250px;">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 2rem;">
+                    <h2>Gestión de Servicios y Precios</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Administra tu lista de servicios. Estos aparecerán al crear un nuevo ticket.</p>
+                    <div style="overflow-x: auto;">
+                        <table class="services-table" id="servicesTable">
+                            <thead>
+                                <tr>
+                                    <th>Categoría</th>
+                                    <th>Trabajo / Servicio</th>
+                                    <th>Precio Sugerido ($)</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Llenado por JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="btn-primary" style="margin-top: 1rem;" onclick="mostrarModalServicio()">+ Agregar Nuevo Servicio</button>
                 </div>
             </section>
 
@@ -213,5 +273,16 @@
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="main.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').then(registration => {
+                    console.log('SW registrado con éxito:', registration.scope);
+                }).catch(err => {
+                    console.log('SW fallo al registrar:', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>
