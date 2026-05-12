@@ -209,6 +209,12 @@ select:focus {
     border-color: var(--accent-neon);
 }
 
+.currency-input {
+    text-align: right;
+    font-family: monospace;
+    font-size: 1.05rem;
+}
+
 .form-actions {
     margin-top: 2rem;
     text-align: right;
@@ -319,16 +325,17 @@ select:focus {
 
 /* Kanban Card */
 .ticket-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
+    background: linear-gradient(145deg, #1e293b, #151e2c);
+    border: 1px solid #334155;
+    border-left: 4px solid var(--accent-electric); /* Borde lateral llamativo */
     padding: 1.2rem;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: grab;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.6rem;
 }
 
 .ticket-card:active {
@@ -360,25 +367,46 @@ select:focus {
 
 .tc-cliente {
     font-weight: 700;
-    font-size: 1.05rem;
-    color: var(--text-main);
+    font-size: 1.1rem;
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.tc-cliente::before {
+    content: '👤';
+    font-size: 0.9rem;
 }
 
 .tc-equipo {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-    margin-bottom: 0.5rem;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    background: rgba(15, 23, 42, 0.5);
+    padding: 0.4rem 0.6rem;
+    border-radius: 4px;
+    display: inline-block;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tc-falla {
+    font-size: 0.8rem;
+    color: #cbd5e1;
+    font-style: italic;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Trunca a 2 líneas */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .tc-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-top: 1px solid var(--border-color);
-    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border-color);
+    padding-top: 0.8rem;
+    margin-top: 0.2rem;
 }
 
 .tc-garantia {

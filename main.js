@@ -271,19 +271,36 @@ function formatCurrency(value) {
     return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(num);
 }
 
+function parseCurrencyInput(value) {
+    // Quita el signo $, los puntos de los miles y espacios. Deja solo números y comas (que luego se pasan a punto para JS)
+    let parsed = value.replace(/[^0-9,-]+/g, "").replace(",", ".");
+    return parseFloat(parsed) || 0;
+}
+
+function formatInputCurrency(input) {
+    // Al escribir, guardamos la posición del cursor si es posible (simplificado)
+    let val = parseCurrencyInput(input.value);
+    if (input.value === "" || isNaN(val)) {
+        input.value = "";
+    } else {
+        // Formateamos como moneda pero permitiendo que el usuario siga escribiendo
+        input.value = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(val);
+    }
+}
+
 // --- LÓGICA DE FORMULARIO (Cálculo Realtime) ---
 function calcularTotal() {
-    const repuestosNeto = parseFloat(document.getElementById('precioRepuestos').value) || 0;
+    const repuestosNeto = parseCurrencyInput(document.getElementById('precioRepuestos').value);
     const margen = parseFloat(document.getElementById('margenRepuestos').value) || 0;
     const subtotalRepuestos = repuestosNeto + (repuestosNeto * margen / 100);
 
     document.getElementById('subtotalRepuestosSpan').innerText = formatCurrency(subtotalRepuestos);
 
-    const manoObra = parseFloat(document.getElementById('precioManoObra').value) || 0;
-    const sena = parseFloat(document.getElementById('precioSena').value) || 0;
-    
+    const manoObra = parseCurrencyInput(document.getElementById('precioManoObra').value);
+    const sena = parseCurrencyInput(document.getElementById('precioSena').value);
+
     const total = (subtotalRepuestos + manoObra) - sena;
-    document.getElementById('precioTotal').value = total > 0 ? total : 0;
+    document.getElementById('precioTotal').value = total > 0 ? formatCurrency(total) : formatCurrency(0);
 }
 
 // --- CREACIÓN DE TICKET (CREATE) ---
@@ -303,23 +320,30 @@ document.getElementById('ticket-form').addEventListener('submit', async function
     const clienteTel = document.getElementById('clienteTelefono').value;
     const clienteNom = document.getElementById('clienteNombre').value;
 
-    const repuestosNeto = parseFloat(document.getElementById('precioRepuestos').value) || 0;
+    const repuestosNeto = parseCurrencyInput(document.getElementById('precioRepuestos').value);
     const margen = parseFloat(document.getElementById('margenRepuestos').value) || 0;
     const subtotalRepuestos = repuestosNeto + (repuestosNeto * margen / 100);
+    const manoObraNeto = parseCurrencyInput(document.getElementById('precioManoObra').value);
+    const senaNeto = parseCurrencyInput(document.getElementById('precioSena').value);
+    const totalNeto = parseCurrencyInput(document.getElementById('precioTotal').value);
+
+    const marca = document.getElementById('equipoMarca').value;
+    const modelo = document.getElementById('equipoModelo').value;
+    const equipoFinal = `${marca} ${modelo}`;
 
     const nuevoTicket = {
         id: nuevoId,
         clienteNombre: clienteNom,
         clienteTelefono: clienteTel,
         equipoSerie: document.getElementById('equipoSerie').value,
-        equipoModelo: document.getElementById('equipoModelo').value,
+        equipoModelo: equipoFinal,
         obsInicial: document.getElementById('obsInicial').value,
         trabajoRealizar: document.getElementById('trabajoRealizar').value,
         precioRepuestos: subtotalRepuestos, // Guardamos el valor final de venta del repuesto
         costoRepuestosNeto: repuestosNeto, // Guardamos el costo real para calcular ganancias precisas
-        precioManoObra: document.getElementById('precioManoObra').value,
-        precioSena: document.getElementById('precioSena').value,
-        precioTotal: document.getElementById('precioTotal').value,
+        precioManoObra: manoObraNeto,
+        precioSena: senaNeto,
+        precioTotal: totalNeto,
         status: 'Pendiente', // Estado inicial por defecto
         fecha: new Date().toISOString(),
         fechaEntrega: null // La garantía empieza cuando esto se rellena
@@ -349,20 +373,27 @@ async function cargarClientesDataList() {
         dataList.innerHTML = '';
         clientes.forEach(c => {
             const option = document.createElement('option');
-            option.value = c.telefono;
-            option.textContent = c.nombre;
+            // Ahora el value es el nombre, porque es donde el usuario escribe
+            option.value = c.nombre;
+            // Guardamos el teléfono en dataset para usarlo al autocompletar
+            option.dataset.telefono = c.telefono;
             dataList.appendChild(option);
         });
     }
 }
 
-async function buscarClientePorTelefono() {
-    const telefono = document.getElementById('clienteTelefono').value;
-    if (telefono) {
-        const cliente = await db.clientes.get(telefono);
-        if (cliente) {
-            document.getElementById('clienteNombre').value = cliente.nombre;
-            showToast(`Cliente encontrado: ${cliente.nombre}`);
+async function buscarClientePorNombre() {
+    const nombreInput = document.getElementById('clienteNombre').value;
+    const dataList = document.getElementById('clientesList');
+
+    if (nombreInput) {
+        // Buscar si el valor introducido coincide con una opción del datalist
+        const option = Array.from(dataList.options).find(opt => opt.value === nombreInput);
+
+        if (option) {
+            // Encontramos el cliente en la base, autocompletamos su teléfono
+            document.getElementById('clienteTelefono').value = option.dataset.telefono;
+            showToast(`Cliente encontrado: ${nombreInput}`);
         }
     }
 }
@@ -454,15 +485,26 @@ async function aplicarServicioSeleccionado() {
     if (select.value) {
         const option = select.options[select.selectedIndex];
         const nombreServicio = option.dataset.nombre;
-        const precioSugerido = option.dataset.precio;
+        const precioSugerido = parseFloat(option.dataset.precio) || 0;
 
-        // Auto-completar campos
+        // Auto-completar texto
         const trabajoActual = document.getElementById('trabajoRealizar').value;
         if (!trabajoActual.includes(nombreServicio)) {
             document.getElementById('trabajoRealizar').value = trabajoActual ? `${trabajoActual}\n+ ${nombreServicio}` : nombreServicio;
         }
 
-        document.getElementById('precioManoObra').value = precioSugerido;
+        // Sumar precio en vez de reemplazar
+        const manoObraInput = document.getElementById('precioManoObra');
+        // Usamos la función global parseCurrencyInput para parsear correctamente el formato ARS
+        const currentManoObra = parseCurrencyInput(manoObraInput.value);
+
+        manoObraInput.value = currentManoObra + precioSugerido;
+
+        // Disparar evento input para aplicar formato si hace falta
+        manoObraInput.dispatchEvent(new Event('input'));
+
+        // Volver al default y calcular total
+        select.value = "";
         calcularTotal();
     }
 }
@@ -546,11 +588,11 @@ async function renderKanban(filtro = '') {
     });
 
     // Filtrar y renderizar
-    const lowerFiltro = filtro.toLowerCase();
-    const ticketsFiltrados = await db.tickets.filter(t =>
-        t.id.toLowerCase().includes(lowerFiltro) ||
-        t.clienteNombre.toLowerCase().includes(lowerFiltro)
-    ).toArray();
+    const tickets = await db.tickets.toArray();
+    const ticketsFiltrados = tickets.filter(t =>
+        t.id.toLowerCase().includes(filtro.toLowerCase()) ||
+        t.clienteNombre.toLowerCase().includes(filtro.toLowerCase())
+    );
 
     ticketsFiltrados.forEach(ticket => {
         const { text: garantiaTexto, className: garantiaClase } = getWarrantyStatus(ticket);
@@ -559,20 +601,21 @@ async function renderKanban(filtro = '') {
         card.className = 'ticket-card';
         card.draggable = true;
         card.id = ticket.id;
-        card.addEventListener('dragstart', drag);
+        card.ondragstart = (e) => drag(e);
 
         card.innerHTML = `
             <div class="tc-header">
                 <span class="tc-id">${ticket.id}</span>
-                <span class="tc-cliente">${ticket.clienteNombre}</span>
+                <span class="tc-total" style="font-size:1.1rem">${formatCurrency(ticket.precioTotal)}</span>
             </div>
+            <div class="tc-cliente">${ticket.clienteNombre}</div>
             <div class="tc-equipo">💻 ${ticket.equipoModelo}</div>
+            <div class="tc-falla">"${ticket.trabajoRealizar}"</div>
             <div class="tc-footer">
                 <span class="tc-garantia ${garantiaClase}">${garantiaTexto}</span>
-                <span class="tc-total">${formatCurrency(ticket.precioTotal)}</span>
                 <div style="display:flex; gap:0.5rem">
-                    <button class="btn-print" title="Imprimir">🖨️</button>
-                    <button class="btn-delete">Eliminar</button>
+                    <button class="btn-print" onclick="imprimirPresupuesto('${ticket.id}')" title="Imprimir">🖨️</button>
+                    <button class="btn-delete" onclick="borrarTicket('${ticket.id}')">Eliminar</button>
                 </div>
             </div>
         `;

@@ -41,13 +41,13 @@
                         <datalist id="clientesList"></datalist>
 
                         <div class="form-group">
-                            <label for="clienteTelefono">Teléfono del Cliente (Buscador)</label>
-                            <input type="tel" id="clienteTelefono" list="clientesList" required onchange="buscarClientePorTelefono()" placeholder="Ej: 1122334455">
-                            <small class="text-muted">Si el cliente ya existe, se autocompletará el nombre.</small>
+                            <label for="clienteNombre">Nombre del Cliente (Buscador)</label>
+                            <input type="text" id="clienteNombre" list="clientesList" required onchange="buscarClientePorNombre()" placeholder="Escribí para buscar o crear...">
+                            <small class="text-muted">Selecciona un cliente existente para autocompletar su teléfono.</small>
                         </div>
                         <div class="form-group">
-                            <label for="clienteNombre">Nombre del Cliente</label>
-                            <input type="text" id="clienteNombre" required>
+                            <label for="clienteTelefono">Teléfono del Cliente</label>
+                            <input type="tel" id="clienteTelefono" required placeholder="Ej: 1122334455">
                         </div>
 
                         <div class="form-group">
@@ -56,8 +56,25 @@
                             <div id="historialEquipoContainer" style="font-size: 0.8rem; margin-top: 0.5rem;"></div>
                         </div>
                         <div class="form-group">
-                            <label for="equipoModelo">Equipo (Marca y Modelo)</label>
-                            <input type="text" id="equipoModelo" required>
+                            <label for="equipoMarca">Marca del Equipo</label>
+                            <select id="equipoMarca" required>
+                                <option value="">Selecciona una marca</option>
+                                <option value="Acer">Acer</option>
+                                <option value="Apple">Apple / Mac</option>
+                                <option value="Asus">Asus</option>
+                                <option value="Dell">Dell</option>
+                                <option value="HP">HP</option>
+                                <option value="Lenovo">Lenovo</option>
+                                <option value="MSI">MSI</option>
+                                <option value="Samsung">Samsung</option>
+                                <option value="Toshiba">Toshiba</option>
+                                <option value="Genérico/Armada">Genérico / Armada</option>
+                                <option value="Otra">Otra...</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="equipoModelo">Modelo del Equipo</label>
+                            <input type="text" id="equipoModelo" required placeholder="Ej: Thinkpad T480">
                         </div>
 
                         <div class="form-group full-width">
@@ -65,12 +82,15 @@
                             <textarea id="obsInicial" rows="3"></textarea>
                         </div>
 
-                        <div class="form-group full-width">
-                            <label for="servicioSelect">Seleccionar Servicio Predefinido (Opcional)</label>
-                            <select id="servicioSelect" onchange="aplicarServicioSeleccionado()">
-                                <option value="">-- Selecciona un servicio de tu lista --</option>
-                                <!-- Llenado por JS -->
-                            </select>
+                        <div class="form-group full-width" style="flex-direction: row; align-items: flex-end; gap: 1rem;">
+                            <div style="flex-grow: 1;">
+                                <label for="servicioSelect">Añadir Servicio Predefinido (Opcional)</label>
+                                <select id="servicioSelect">
+                                    <option value="">-- Selecciona un servicio de tu lista --</option>
+                                    <!-- Llenado por JS -->
+                                </select>
+                            </div>
+                            <button type="button" class="btn-primary" style="padding: 0.8rem 1.5rem;" onclick="aplicarServicioSeleccionado()">+ Añadir</button>
                         </div>
 
                         <div class="form-group full-width">
@@ -81,7 +101,7 @@
 
                         <div class="form-group">
                             <label for="precioRepuestos">Costo Repuestos Neto ($)</label>
-                            <input type="number" id="precioRepuestos" min="0" oninput="calcularTotal()">
+                            <input type="text" id="precioRepuestos" class="currency-input" oninput="formatInputCurrency(this); calcularTotal()">
                             <small class="text-muted">Costo real de los materiales.</small>
                         </div>
                         <div class="form-group">
@@ -91,16 +111,16 @@
                         </div>
                         <div class="form-group">
                             <label for="precioManoObra">Costo Mano de Obra ($)</label>
-                            <input type="number" id="precioManoObra" min="0" oninput="calcularTotal()">
-                            <small class="text-muted">Si seleccionaste un servicio, este valor se precargó automáticamente.</small>
+                            <input type="text" id="precioManoObra" class="currency-input" oninput="formatInputCurrency(this); calcularTotal()">
+                            <small class="text-muted">Si seleccionaste un servicio, este valor se sumó automáticamente.</small>
                         </div>
                         <div class="form-group">
                             <label for="precioSena">Seña Dejada ($)</label>
-                            <input type="number" id="precioSena" min="0">
+                            <input type="text" id="precioSena" class="currency-input" oninput="formatInputCurrency(this); calcularTotal()">
                         </div>
                         <div class="form-group total-group">
                             <label for="precioTotal">Total a Cobrar ($)</label>
-                            <input type="number" id="precioTotal" readonly>
+                            <input type="text" id="precioTotal" readonly>
                         </div>
                         <div class="form-group full-width form-actions">
                             <button type="submit" class="btn-primary">Guardar Ticket</button>
@@ -120,7 +140,7 @@
                     </div>
                     <div class="search-box">
                         <span>🔍</span>
-                        <input type="text" id="searchInput" placeholder="Buscar por ID o cliente...">
+                        <input type="text" id="searchInput" onkeyup="filtrarTickets()" placeholder="Buscar por ID o cliente...">
                     </div>
                 </div>
 
@@ -130,7 +150,7 @@
                         <div class="col-header pending-header">
                             Pendiente (<span id="count-Pendiente">0</span>)
                         </div>
-                        <div class="col-content" id="list-Pendiente" data-status="Pendiente"></div>
+                        <div class="col-content" id="list-Pendiente" ondrop="drop(event, 'Pendiente')" ondragover="allowDrop(event)"></div>
                     </div>
 
                     <!-- Columna Pendiente Aprobación -->
@@ -138,7 +158,7 @@
                         <div class="col-header approval-header">
                             Pendiente Aprob. (<span id="count-Pendiente-Aprobación">0</span>)
                         </div>
-                        <div class="col-content" id="list-Pendiente-Aprobación" data-status="Pendiente Aprobación"></div>
+                        <div class="col-content" id="list-Pendiente-Aprobación" ondrop="drop(event, 'Pendiente Aprobación')" ondragover="allowDrop(event)"></div>
                     </div>
 
                     <!-- Columna En Proceso -->
@@ -146,7 +166,7 @@
                         <div class="col-header progress-header">
                             En Proceso (<span id="count-En-Proceso">0</span>)
                         </div>
-                        <div class="col-content" id="list-En-Proceso" data-status="En Proceso"></div>
+                        <div class="col-content" id="list-En-Proceso" ondrop="drop(event, 'En Proceso')" ondragover="allowDrop(event)"></div>
                     </div>
 
                     <!-- Columna Esperando Repuestos -->
@@ -154,7 +174,7 @@
                         <div class="col-header parts-header">
                             Esperando Repuestos (<span id="count-Esperando-Repuestos">0</span>)
                         </div>
-                        <div class="col-content" id="list-Esperando-Repuestos" data-status="Esperando Repuestos"></div>
+                        <div class="col-content" id="list-Esperando-Repuestos" ondrop="drop(event, 'Esperando Repuestos')" ondragover="allowDrop(event)"></div>
                     </div>
 
                     <!-- Columna Listo para Entregar -->
@@ -162,7 +182,7 @@
                         <div class="col-header done-header">
                             Listo para Entregar (<span id="count-Listo-para-Entregar">0</span>)
                         </div>
-                        <div class="col-content" id="list-Listo-para-Entregar" data-status="Listo para Entregar"></div>
+                        <div class="col-content" id="list-Listo-para-Entregar" ondrop="drop(event, 'Listo para Entregar')" ondragover="allowDrop(event)"></div>
                     </div>
 
                     <!-- Columna Entregado -->
@@ -170,7 +190,7 @@
                         <div class="col-header delivered-header">
                             Entregado (<span id="count-Entregado">0</span>)
                         </div>
-                        <div class="col-content" id="list-Entregado" data-status="Entregado"></div>
+                        <div class="col-content" id="list-Entregado" ondrop="drop(event, 'Entregado')" ondragover="allowDrop(event)"></div>
                     </div>
                 </div>
             </section>
@@ -252,14 +272,14 @@
                 <div class="card" style="margin-bottom: 2rem;">
                     <h2>Exportar Datos</h2>
                     <p style="color: var(--text-muted); margin-bottom: 1rem;">Descarga un archivo seguro con todos tus tickets para guardarlo en un pendrive o en la nube.</p>
-                    <button id="export-btn" class="btn-primary">💾 Descargar Respaldo</button>
+                    <button class="btn-primary" onclick="exportData()">💾 Descargar Respaldo</button>
                 </div>
 
                 <div class="card">
                     <h2>Importar Datos</h2>
                     <p style="color: var(--text-muted); margin-bottom: 1rem;">Restaura tus tickets desde un archivo de respaldo (.json).</p>
                     <input type="file" id="importFile" accept=".json" style="margin-bottom: 1rem;">
-                    <button id="import-btn" class="btn-primary">📂 Restaurar Respaldo</button>
+                    <button class="btn-primary" onclick="importData()">📂 Restaurar Respaldo</button>
                 </div>
             </section>
 
