@@ -59,6 +59,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     // await renderKanban(); // Lo pre-renderizamos cuando el usuario visite la pestaña
 
     await seedServiciosDefault();
+
+    // Eventos Drag & Drop para las columnas del Kanban
+    const kanbanCols = document.querySelectorAll('.col-content');
+    kanbanCols.forEach(col => {
+        col.addEventListener('dragover', allowDrop);
+        col.addEventListener('drop', (ev) => drop(ev, col.dataset.status));
+    });
+
+    // Evento de búsqueda para Kanban
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrarTickets);
+    }
+
+    // Delegación de eventos para botones del Kanban (Imprimir y Eliminar)
+    const kanbanBoard = document.querySelector('.kanban-board');
+    if (kanbanBoard) {
+        kanbanBoard.addEventListener('click', (ev) => {
+            const ticketCard = ev.target.closest('.ticket-card');
+            if (!ticketCard) return;
+
+            const ticketId = ticketCard.id;
+
+            if (ev.target.closest('.btn-print')) {
+                imprimirPresupuesto(ticketId);
+            } else if (ev.target.closest('.btn-delete')) {
+                borrarTicket(ticketId);
+            }
+        });
+    }
+
+    // Eventos para Exportar e Importar DB
+    const exportBtn = document.getElementById('export-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportData);
+    }
+
+    const importBtn = document.getElementById('import-btn');
+    if (importBtn) {
+        importBtn.addEventListener('click', importData);
+    }
 });
 
 async function seedServiciosDefault() {
