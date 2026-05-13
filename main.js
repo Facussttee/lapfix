@@ -593,7 +593,12 @@ async function renderKanban(filtro = '') {
         t.clienteNombre.toLowerCase().includes(lowerFiltro)
     ).toArray();
 
+    const statusCounts = {};
+    KANBAN_STATUSES.forEach(s => statusCounts[s] = 0);
+
     ticketsFiltrados.forEach(ticket => {
+        statusCounts[ticket.status] = (statusCounts[ticket.status] || 0) + 1;
+
         const { text: garantiaTexto, className: garantiaClase } = getWarrantyStatus(ticket);
 
         const card = document.createElement('div');
@@ -627,7 +632,7 @@ async function renderKanban(filtro = '') {
     KANBAN_STATUSES.forEach(estado => {
         const statusId = estado.replace(/ /g, '-');
         const countEl = document.getElementById(`count-${statusId}`);
-        if (countEl) countEl.innerText = ticketsFiltrados.filter(t => t.status === estado).length;
+        if (countEl) countEl.innerText = statusCounts[estado] || 0;
     });
 }
 
