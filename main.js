@@ -288,10 +288,10 @@ function calcularTotal() {
 
 // --- CREACIÓN DE TICKET (CREATE) ---
 async function generarId() {
-    const tickets = await db.tickets.toArray();
-    if (tickets.length === 0) return 'LPX-001';
+    const keys = await db.tickets.toCollection().primaryKeys();
+    if (keys.length === 0) return 'LPX-001';
     // Buscar el número más alto actual
-    const maxId = Math.max(...tickets.map(t => parseInt(t.id.split('-')[1])));
+    const maxId = Math.max(...keys.map(id => parseInt(id.split('-')[1])));
     // Sumar 1 y rellenar con ceros a la izquierda (ej: 002)
     return `LPX-${String(maxId + 1).padStart(3, '0')}`;
 }
