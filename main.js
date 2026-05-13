@@ -537,10 +537,14 @@ function getWarrantyStatus(ticket) {
 
 
 // --- KANBAN BOARD (READ & FILTER) ---
+function formatStatusId(status) {
+    return status.replace(/ /g, '-');
+}
+
 async function renderKanban(filtro = '') {
     // Limpiar columnas
     KANBAN_STATUSES.forEach(estado => {
-        const statusId = estado.replace(/ /g, '-');
+        const statusId = formatStatusId(estado);
         const listEl = document.getElementById(`list-${statusId}`);
         if (listEl) listEl.innerHTML = '';
     });
@@ -577,14 +581,14 @@ async function renderKanban(filtro = '') {
             </div>
         `;
         
-        const statusId = ticket.status.replace(/ /g, '-');
+        const statusId = formatStatusId(ticket.status);
         const column = document.getElementById(`list-${statusId}`);
         if (column) column.appendChild(card);
     });
 
     // Actualizar contadores
     KANBAN_STATUSES.forEach(estado => {
-        const statusId = estado.replace(/ /g, '-');
+        const statusId = formatStatusId(estado);
         const countEl = document.getElementById(`count-${statusId}`);
         if (countEl) countEl.innerText = ticketsFiltrados.filter(t => t.status === estado).length;
     });
