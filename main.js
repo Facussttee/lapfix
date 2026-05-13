@@ -18,6 +18,19 @@ db.version(2).stores({
     });
 });
 
+db.version(3).stores({
+    metadata: 'id' // Tabla para guardar secuencias (ej: ticket_seq)
+}).upgrade(async tx => {
+    // Inicializar la secuencia basada en los tickets existentes
+    const keys = await tx.table('tickets').toCollection().primaryKeys();
+    let maxId = 0;
+    for (const key of keys) {
+        const num = parseInt(key.split('-')[1]);
+        if (num > maxId) maxId = num;
+    }
+    await tx.table('metadata').put({ id: 'ticket_seq', seq: maxId });
+});
+
 const KANBAN_STATUSES = ['Pendiente', 'Pendiente Aprobación', 'En Proceso', 'Esperando Repuestos', 'Listo para Entregar', 'Entregado'];
 
 // Al cargar la ventana
@@ -288,12 +301,25 @@ function calcularTotal() {
 
 // --- CREACIÓN DE TICKET (CREATE) ---
 async function generarId() {
-    const tickets = await db.tickets.toArray();
-    if (tickets.length === 0) return 'LPX-001';
-    // Buscar el número más alto actual
-    const maxId = Math.max(...tickets.map(t => parseInt(t.id.split('-')[1])));
-    // Sumar 1 y rellenar con ceros a la izquierda (ej: 002)
-    return `LPX-${String(maxId + 1).padStart(3, '0')}`;
+    return await db.transaction('rw', db.metadata, db.tickets, async () => {
+        let seqRecord = await db.metadata.get('ticket_seq');
+        let maxId = 0;
+        if (seqRecord) {
+            maxId = seqRecord.seq;
+        } else {
+            // Fallback de seguridad en caso de que la secuencia no exista
+            const keys = await db.tickets.toCollection().primaryKeys();
+            for (const key of keys) {
+                const num = parseInt(key.split('-')[1]);
+                if (num > maxId) maxId = num;
+            }
+        }
+
+        const nextId = maxId + 1;
+        // Guardamos la nueva secuencia de inmediato para reservarla
+        await db.metadata.put({ id: 'ticket_seq', seq: nextId });
+        return `LPX-${String(nextId).padStart(3, '0')}`;
+    });
 }
 
 document.getElementById('ticket-form').addEventListener('submit', async function(e) {
