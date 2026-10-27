@@ -1,285 +1,970 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LAPFIX - Sistema de Gestión</title>
+    <title>LAPFIX — Gestión de Servicio Técnico</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#090d16">
 </head>
 <body>
 
-    <div class="app-container">
-        <!-- Barra Lateral (Sidebar) -->
-        <aside class="sidebar">
-            <div class="logo">LAP<span>FIX</span></div>
-            <nav class="nav-menu">
-                <button id="nav-dashboard" class="nav-link active" onclick="switchView('dashboard-view')"><span>📊</span><span class="nav-text">Dashboard</span></button>
-                <button id="nav-ticket" class="nav-link" onclick="switchView('ticket-view')"><span>📝</span><span class="nav-text">Nuevo Ticket</span></button>
-                <button id="nav-kanban" class="nav-link" onclick="switchView('kanban-view')"><span>📋</span><span class="nav-text">Tablero Kanban</span></button>
-                <button id="nav-settings" class="nav-link" onclick="switchView('settings-view')"><span>⚙️</span><span class="nav-text">Base de Datos</span></button>
+    <div class="app-shell" id="app-shell">
+        <!-- Overlay para menú móvil -->
+        <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+        <!-- Barra Lateral -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                        <path d="M2 17h20"></path>
+                        <path d="M6 21h12"></path>
+                        <path d="m10 9 2 2 4-4"></path>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name">LAP<span>FIX</span></span>
+                    <span class="brand-tag">Taller & Gestión</span>
+                </div>
+            </div>
+
+            <div class="sidebar-cta">
+                <button type="button" id="btn-quick-new" class="btn btn-primary btn-full">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    <span class="nav-text">Nuevo Ingreso</span>
+                    <kbd class="kbd-hint nav-text">N</kbd>
+                </button>
+            </div>
+
+            <nav class="nav-menu" aria-label="Navegación principal">
+                <button type="button" id="nav-dashboard" class="nav-link active" data-view="dashboard-view" title="Resumen">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="9" rx="1.5"></rect>
+                        <rect x="14" y="3" width="7" height="5" rx="1.5"></rect>
+                        <rect x="14" y="12" width="7" height="9" rx="1.5"></rect>
+                        <rect x="3" y="16" width="7" height="5" rx="1.5"></rect>
+                    </svg>
+                    <span class="nav-text">Resumen</span>
+                </button>
+
+                <button type="button" id="nav-kanban" class="nav-link" data-view="kanban-view" title="Tablero de Equipos">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                        <path d="M9 3v18M15 3v18"></path>
+                    </svg>
+                    <span class="nav-text">Equipos en Taller</span>
+                    <span class="nav-badge nav-text" id="nav-active-count">0</span>
+                </button>
+
+                <button type="button" id="nav-ticket" class="nav-link" data-view="ticket-view" title="Nuevo Ingreso">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <path d="M14 2v6h6"></path>
+                        <path d="M12 18v-6M9 15h6"></path>
+                    </svg>
+                    <span class="nav-text">Ingreso de Equipo</span>
+                </button>
+
+                <button type="button" id="nav-services" class="nav-link" data-view="services-view" title="Catálogo de Servicios">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                    </svg>
+                    <span class="nav-text"> Tarifario & Servicios</span>
+                </button>
+
+                <button type="button" id="nav-settings" class="nav-link" data-view="settings-view" title="Respaldo y Datos">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"></path>
+                    </svg>
+                    <span class="nav-text">Respaldo y Datos</span>
+                </button>
             </nav>
+
             <div class="sidebar-footer">
-                <button id="sidebar-toggle" class="nav-link"><span>↔️</span><span class="nav-text">Ocultar Menú</span></button>
+                <button type="button" id="theme-toggle" class="nav-link subtle-link" title="Cambiar tema claro/oscuro">
+                    <svg class="icon icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="4"></circle>
+                        <path d="M12 2v2M12 20v2m-7.07-14.93 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+                    </svg>
+                    <svg class="icon icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <span class="nav-text" id="theme-label">Modo Claro</span>
+                </button>
+
+                <button type="button" id="sidebar-toggle" class="nav-link subtle-link desktop-only" title="Colapsar barra lateral">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                        <path d="M9 3v18"></path>
+                    </svg>
+                    <span class="nav-text">Colapsar menú</span>
+                </button>
             </div>
         </aside>
 
-        <!-- Contenido Principal -->
-        <main class="main-content">
-            
-            <!-- VISTA: Formulario de Ingreso -->
-            <section id="ticket-view" class="view-section">
-                <div class="section-header">
-                    <h1>Ingreso de Equipo</h1>
-                    <p>Completá los datos para generar un nuevo ticket.</p>
-                </div>
-                
-                <div class="card">
-                    <form id="ticket-form" class="form-grid">
-                        <!-- Autocompletado DataList para Clientes -->
+        <!-- Área Principal -->
+        <div class="main-wrapper">
+            <!-- Barra superior móvil -->
+            <header class="mobile-topbar">
+                <button type="button" id="mobile-menu-btn" class="icon-btn" aria-label="Abrir menú">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12h18M3 6h18M3 18h18"></path>
+                    </svg>
+                </button>
+                <div class="mobile-brand">LAP<span>FIX</span></div>
+                <button type="button" id="mobile-new-btn" class="btn btn-primary btn-sm">+ Ingreso</button>
+            </header>
+
+            <main class="main-content">
+
+                <!-- ==========================================
+                     VISTA 1: RESUMEN / DASHBOARD
+                     ========================================== -->
+                <section id="dashboard-view" class="view-section active">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Resumen del Taller</h1>
+                            <p class="page-subtitle" id="dashboard-date-subtitle">Estado operativo y métricas financieras.</p>
+                        </div>
+                        <div class="header-actions">
+                            <button type="button" class="btn btn-secondary" id="btn-demo-dashboard" title="Generar 25 tickets aleatorios para probar gráficos y flujo completo">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                                    <circle cx="8" cy="8" r="1.5"></circle>
+                                    <circle cx="16" cy="16" r="1.5"></circle>
+                                    <circle cx="8" cy="16" r="1.5"></circle>
+                                    <circle cx="16" cy="8" r="1.5"></circle>
+                                    <circle cx="12" cy="12" r="1.5"></circle>
+                                </svg>
+                                Cargar Tickets Demo
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-goto="kanban-view">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                                    <path d="M9 3v18M15 3v18"></path>
+                                </svg>
+                                Ver Tablero
+                            </button>
+                            <button type="button" class="btn btn-primary" data-goto="ticket-view">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 5v14M5 12h14"></path>
+                                </svg>
+                                Nuevo Ingreso
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPIs -->
+                    <div class="kpi-grid">
+                        <div class="card kpi-card">
+                            <div class="kpi-top">
+                                <span class="kpi-label">Equipos en Taller</span>
+                                <span class="kpi-icon kpi-blue">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                                        <path d="M2 17h20M6 21h12"></path>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value" id="metric-active-tickets">0</div>
+                            <div class="kpi-foot"><span id="metric-total-tickets">0</span> registrados en total</div>
+                        </div>
+
+                        <div class="card kpi-card">
+                            <div class="kpi-top">
+                                <span class="kpi-label">Pendiente de Cobro</span>
+                                <span class="kpi-icon kpi-amber">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <path d="M12 6v6l4 2"></path>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value text-warning" id="metric-pending-payment">$0</div>
+                            <div class="kpi-foot" id="metric-ready-count">0 listos para retirar</div>
+                        </div>
+
+                        <div class="card kpi-card">
+                            <div class="kpi-top">
+                                <span class="kpi-label">Ingresos Cobrados</span>
+                                <span class="kpi-icon kpi-indigo">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value" id="metric-gross-income">$0</div>
+                            <div class="kpi-foot">Equipos entregados (incl. señas)</div>
+                        </div>
+
+                        <div class="card kpi-card">
+                            <div class="kpi-top">
+                                <span class="kpi-label">Ganancia Neta Real</span>
+                                <span class="kpi-icon kpi-emerald">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                                        <polyline points="16 7 22 7 22 13"></polyline>
+                                    </svg>
+                                </span>
+                            </div>
+                            <div class="kpi-value text-success" id="metric-net-profit">$0</div>
+                            <div class="kpi-foot">Descontando costo de repuestos</div>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos -->
+                    <div class="charts-grid">
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <div>
+                                    <h2 class="card-title">Evolución Mensual</h2>
+                                    <p class="card-subtitle">Ingresos cobrados vs. ganancia neta en equipos entregados</p>
+                                </div>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="financeChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card chart-card">
+                            <div class="card-header">
+                                <div>
+                                    <h2 class="card-title">Distribución por Estado</h2>
+                                    <p class="card-subtitle">Carga actual de trabajo</p>
+                                </div>
+                            </div>
+                            <div class="chart-container chart-container-sm">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bandeja de atención rápida -->
+                    <div class="dashboard-lists-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h2 class="card-title">Requieren Atención</h2>
+                                    <p class="card-subtitle">Listos para entregar o esperando aprobación del cliente</p>
+                                </div>
+                                <button type="button" class="btn btn-ghost btn-sm" data-goto="kanban-view">Ver todos</button>
+                            </div>
+                            <div id="attention-tickets-list" class="compact-ticket-list"></div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <h2 class="card-title">Ingresos Recientes</h2>
+                                    <p class="card-subtitle">Últimos equipos registrados en el sistema</p>
+                                </div>
+                                <button type="button" class="btn btn-ghost btn-sm" data-goto="ticket-view">+ Registrar</button>
+                            </div>
+                            <div id="recent-tickets-list" class="compact-ticket-list"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==========================================
+                     VISTA 2: INGRESO DE EQUIPO (NUEVO TICKET)
+                     ========================================== -->
+                <section id="ticket-view" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Nuevo Ingreso de Equipo</h1>
+                            <p class="page-subtitle">Registrá los datos del cliente, el estado del equipo y el presupuesto inicial.</p>
+                        </div>
+                        <div class="header-actions">
+                            <button type="button" id="btn-clear-form" class="btn btn-secondary">Limpiar campos</button>
+                        </div>
+                    </div>
+
+                    <form id="ticket-form" class="intake-layout">
                         <datalist id="clientesList"></datalist>
 
-                        <div class="form-group">
-                            <label for="clienteTelefono">Teléfono del Cliente (Buscador)</label>
-                            <input type="tel" id="clienteTelefono" list="clientesList" required onchange="buscarClientePorTelefono()" placeholder="Ej: 1122334455">
-                            <small class="text-muted">Si el cliente ya existe, se autocompletará el nombre.</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="clienteNombre">Nombre del Cliente</label>
-                            <input type="text" id="clienteNombre" required>
+                        <!-- Columna izquierda: Datos -->
+                        <div class="intake-main">
+                            <!-- Bloque 1: Cliente -->
+                            <div class="card form-section-card">
+                                <div class="form-section-header">
+                                    <span class="step-badge">1</span>
+                                    <div>
+                                        <h2 class="card-title">Datos del Cliente</h2>
+                                        <p class="card-subtitle">Ingresá el teléfono para buscar clientes frecuentes automáticamente.</p>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="clienteTelefono">Teléfono / WhatsApp <span class="req">*</span></label>
+                                        <input type="tel" id="clienteTelefono" list="clientesList" required placeholder="Ej: 11 2345 6789" autocomplete="off">
+                                        <small class="field-hint" id="clienteMatchHint"></small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="clienteNombre">Nombre y Apellido <span class="req">*</span></label>
+                                        <input type="text" id="clienteNombre" required placeholder="Ej: Martín Gómez" autocomplete="off">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bloque 2: Equipo -->
+                            <div class="card form-section-card">
+                                <div class="form-section-header">
+                                    <span class="step-badge">2</span>
+                                    <div>
+                                        <h2 class="card-title">Identificación y Estado del Equipo</h2>
+                                        <p class="card-subtitle">Elegí el tipo y la marca rápidamente, o completá libremente.</p>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group full-width">
+                                        <label>Tipo de Equipo (Selección rápida)</label>
+                                        <div class="quick-chips" id="device-type-chips">
+                                            <button type="button" class="chip" data-type="Notebook">💻 Notebook</button>
+                                            <button type="button" class="chip" data-type="PC Desktop">🖥️ PC Desktop</button>
+                                            <button type="button" class="chip" data-type="PC Gamer">⚡ PC Gamer</button>
+                                            <button type="button" class="chip" data-type="All-in-One">🖥️ All-in-One</button>
+                                            <button type="button" class="chip" data-type="Consola">🎮 Consola</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label>Marca (Selección rápida)</label>
+                                        <div class="quick-chips" id="device-brand-chips">
+                                            <button type="button" class="chip" data-brand="Lenovo">Lenovo</button>
+                                            <button type="button" class="chip" data-brand="HP">HP</button>
+                                            <button type="button" class="chip" data-brand="Dell">Dell</button>
+                                            <button type="button" class="chip" data-brand="Asus">Asus</button>
+                                            <button type="button" class="chip" data-brand="Acer">Acer</button>
+                                            <button type="button" class="chip" data-brand="Apple">Apple</button>
+                                            <button type="button" class="chip" data-brand="Samsung">Samsung</button>
+                                            <button type="button" class="chip" data-brand="Banghó">Banghó</button>
+                                            <button type="button" class="chip" data-brand="Exo">Exo</button>
+                                            <button type="button" class="chip" data-brand="MSI">MSI</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="equipoModelo">Equipo (Marca y Modelo) <span class="req">*</span></label>
+                                        <input type="text" id="equipoModelo" required placeholder="Ej: Notebook Lenovo IdeaPad 3">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="equipoSerie">Número de Serie <span class="optional-tag">Opcional</span></label>
+                                        <input type="text" id="equipoSerie" placeholder="Ej: PF2A8K12">
+                                    </div>
+
+                                    <div class="form-group full-width" id="historialEquipoWrapper" hidden>
+                                        <div id="historialEquipoContainer" class="history-banner"></div>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label for="obsInicial">Estado Estético y Accesorios Recibidos</label>
+                                        <div class="quick-chips" id="obs-quick-chips">
+                                            <button type="button" class="chip" data-obs="Con cargador original">+ Cargador original</button>
+                                            <button type="button" class="chip" data-obs="Sin cargador">+ Sin cargador</button>
+                                            <button type="button" class="chip" data-obs="Con funda / bolso">+ Con funda</button>
+                                            <button type="button" class="chip" data-obs="Rayones leves de uso">+ Rayones de uso</button>
+                                            <button type="button" class="chip" data-obs="Carcasa / bisagra dañada">+ Detalle en carcasa</button>
+                                        </div>
+                                        <textarea id="obsInicial" rows="2" placeholder="Ej: Incluye cargador original, marcas leves en tapa superior..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Bloque 3: Diagnóstico y Servicio -->
+                            <div class="card form-section-card">
+                                <div class="form-section-header">
+                                    <span class="step-badge">3</span>
+                                    <div>
+                                        <h2 class="card-title">Falla Reportada y Trabajo a Realizar</h2>
+                                        <p class="card-subtitle">Elegí los síntomas frecuentes o seleccioná servicios del tarifario con 1 clic.</p>
+                                    </div>
+                                </div>
+
+                                <div class="form-grid">
+                                    <div class="form-group full-width">
+                                        <label>Fallas y Síntomas Frecuentes (Clic para agregar)</label>
+                                        <div class="quick-chips" id="symptoms-quick-chips">
+                                            <button type="button" class="chip chip-symptom" data-symptom="No enciende">+ No enciende</button>
+                                            <button type="button" class="chip chip-symptom" data-symptom="Muy lenta / Limpieza de virus">+ Muy lenta / Virus</button>
+                                            <button type="button" class="chip chip-symptom" data-symptom="Pantalla rota / Sin video">+ Sin video / Pantalla</button>
+                                            <button type="button" class="chip chip-symptom" data-symptom="Levanta temperatura / Se apaga sola">+ Levanta temp / Se apaga</button>
+                                            <button type="button" class="chip chip-symptom" data-symptom="No carga batería / Falso contacto PIN">+ No carga / PIN de carga</button>
+                                            <button type="button" class="chip chip-symptom" data-symptom="Teclado o touchpad no responde">+ Teclado / Touchpad</button>
+                                            <button type="button" class="chip chip-symptom" data-symptom="Bisagras rotas / Carcasa dañada">+ Bisagra / Carcasa</button>
+                                            <button type="button" class="chip chip-symptom" data-symptom="Pantalla azul / No arranca Windows">+ Pantallazo azul / Windows</button>
+                                            <button type="button" class="chip chip-symptom" data-symptom="Derrame de líquido">+ Líquido derramado</button>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label>Servicios Habituales (Suma trabajo y mano de obra)</label>
+                                        <div class="quick-services-grid" id="frequent-services-grid">
+                                            <!-- Poblado dinámicamente con los servicios más habituales -->
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label for="servicioSelect">Ver Todo el Tarifario <span class="optional-tag">Opcional</span></label>
+                                        <select id="servicioSelect">
+                                            <option value="">Seleccionar otro servicio de la lista completa...</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group full-width">
+                                        <label for="trabajoRealizar">Detalle de la Falla y Tareas a Realizar <span class="req">*</span></label>
+                                        <textarea id="trabajoRealizar" rows="3" required placeholder="Se agregará automáticamente según lo que selecciones arriba, o podés escribir acá..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="form-group">
-                            <label for="equipoSerie">Número de Serie (Historial)</label>
-                            <input type="text" id="equipoSerie" onchange="buscarHistorialEquipo()" placeholder="Opcional">
-                            <div id="historialEquipoContainer" style="font-size: 0.8rem; margin-top: 0.5rem;"></div>
-                        </div>
-                        <div class="form-group">
-                            <label for="equipoModelo">Equipo (Marca y Modelo)</label>
-                            <input type="text" id="equipoModelo" required>
-                        </div>
+                        <!-- Columna derecha: Cotización Sticky -->
+                        <aside class="intake-sidebar">
+                            <div class="card quote-card">
+                                <h2 class="card-title">Presupuesto</h2>
+                                <p class="card-subtitle">Podés completarlo ahora o actualizarlo luego del diagnóstico.</p>
 
-                        <div class="form-group full-width">
-                            <label for="obsInicial">Observaciones Iniciales (Estado estético, accesorios, etc.)</label>
-                            <textarea id="obsInicial" rows="3"></textarea>
-                        </div>
+                                <div class="quote-fields">
+                                    <div class="form-group">
+                                        <button type="button" id="btn-quick-diagnosis" class="btn btn-secondary btn-full btn-sm" style="margin-bottom: 0.25rem;">
+                                            🔍 Dejar a Revisar (Diag. $30.000)
+                                        </button>
+                                    </div>
 
-                        <div class="form-group full-width">
-                            <label for="servicioSelect">Seleccionar Servicio Predefinido (Opcional)</label>
-                            <select id="servicioSelect" onchange="aplicarServicioSeleccionado()">
-                                <option value="">-- Selecciona un servicio de tu lista --</option>
-                                <!-- Llenado por JS -->
-                            </select>
-                        </div>
+                                    <div class="form-group">
+                                        <label for="precioRepuestos">Costo Neto Repuestos ($)</label>
+                                        <input type="number" id="precioRepuestos" min="0" step="any" placeholder="0">
+                                    </div>
 
-                        <div class="form-group full-width">
-                            <label for="trabajoRealizar">Falla Reportada / Trabajo a Realizar</label>
-                            <textarea id="trabajoRealizar" rows="3" required></textarea>
-                            <small class="text-muted">Podés modificar este texto aunque hayas seleccionado un servicio.</small>
-                        </div>
+                                    <div class="form-group">
+                                        <div class="label-row">
+                                            <label for="margenRepuestos">Margen Repuestos (%)</label>
+                                            <div class="mini-chips" id="margin-presets">
+                                                <button type="button" class="mini-chip" data-margin="0">0%</button>
+                                                <button type="button" class="mini-chip" data-margin="20">20%</button>
+                                                <button type="button" class="mini-chip" data-margin="35">35%</button>
+                                                <button type="button" class="mini-chip" data-margin="50">50%</button>
+                                            </div>
+                                        </div>
+                                        <input type="number" id="margenRepuestos" min="0" step="any" value="0">
+                                    </div>
 
-                        <div class="form-group">
-                            <label for="precioRepuestos">Costo Repuestos Neto ($)</label>
-                            <input type="number" id="precioRepuestos" min="0" oninput="calcularTotal()">
-                            <small class="text-muted">Costo real de los materiales.</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="margenRepuestos">Margen sobre Repuestos (%)</label>
-                            <input type="number" id="margenRepuestos" min="0" value="0" oninput="calcularTotal()">
-                            <small class="text-muted">Subtotal Repuestos con Margen: <span id="subtotalRepuestosSpan" style="color:var(--accent-neon); font-weight:bold">$0.00</span></small>
-                        </div>
-                        <div class="form-group">
-                            <label for="precioManoObra">Costo Mano de Obra ($)</label>
-                            <input type="number" id="precioManoObra" min="0" oninput="calcularTotal()">
-                            <small class="text-muted">Si seleccionaste un servicio, este valor se precargó automáticamente.</small>
-                        </div>
-                        <div class="form-group">
-                            <label for="precioSena">Seña Dejada ($)</label>
-                            <input type="number" id="precioSena" min="0">
-                        </div>
-                        <div class="form-group total-group">
-                            <label for="precioTotal">Total a Cobrar ($)</label>
-                            <input type="number" id="precioTotal" readonly>
-                        </div>
-                        <div class="form-group full-width form-actions">
-                            <button type="submit" class="btn-primary">Guardar Ticket</button>
-                        </div>
+                                    <div class="form-group">
+                                        <label for="precioManoObra">Mano de Obra ($)</label>
+                                        <input type="number" id="precioManoObra" min="0" step="any" placeholder="0">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <div class="label-row">
+                                            <label for="precioSena">Seña / Adelanto ($)</label>
+                                            <div class="mini-chips" id="sena-presets">
+                                                <button type="button" class="mini-chip" data-sena="0">$0</button>
+                                                <button type="button" class="mini-chip" data-sena="5000">$5k</button>
+                                                <button type="button" class="mini-chip" data-sena="10000">$10k</button>
+                                                <button type="button" class="mini-chip" data-sena="20000">$20k</button>
+                                            </div>
+                                        </div>
+                                        <input type="number" id="precioSena" min="0" step="any" placeholder="0">
+                                    </div>
+                                </div>
+
+                                <div class="quote-summary">
+                                    <div class="summary-row">
+                                        <span>Repuestos (venta)</span>
+                                        <span id="subtotalRepuestosSpan">$ 0,00</span>
+                                    </div>
+                                    <div class="summary-row">
+                                        <span>Mano de obra</span>
+                                        <span id="summaryManoObraSpan">$ 0,00</span>
+                                    </div>
+                                    <div class="summary-row summary-subtotal">
+                                        <span>Total del trabajo</span>
+                                        <span id="summarySubtotalTrabajoSpan">$ 0,00</span>
+                                    </div>
+                                    <div class="summary-row text-muted">
+                                        <span>Seña descontada</span>
+                                        <span id="summarySenaSpan">- $ 0,00</span>
+                                    </div>
+                                    <div class="summary-total-box">
+                                        <span>Saldo a cobrar</span>
+                                        <strong id="summaryTotalDisplay">$ 0,00</strong>
+                                        <input type="hidden" id="precioTotal" value="0">
+                                    </div>
+                                </div>
+
+                                <div class="quote-actions">
+                                    <button type="submit" class="btn btn-primary btn-full btn-lg">
+                                        Guardar Ticket
+                                    </button>
+                                    <button type="button" id="btn-save-and-print" class="btn btn-secondary btn-full">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                            <rect x="6" y="14" width="12" height="8"></rect>
+                                        </svg>
+                                        Guardar e Imprimir Orden
+                                    </button>
+                                </div>
+                            </div>
+                        </aside>
                     </form>
-                </div>
-            </section>
+                </section>
 
-            <!-- VISTA: Tablero Kanban -->
-            <section id="kanban-view" class="view-section">
-                <!-- Aquí se insertará dinámicamente el contenido del Kanban por tu main.js 
-                     pero como definimos la estructura cruda, la añadimos: -->
-                <div class="section-header kanban-header">
-                    <div>
-                        <h1>Tablero de Progreso</h1>
-                        <p>Arrastrá y soltá los tickets para actualizar su estado.</p>
-                    </div>
-                    <div class="search-box">
-                        <span>🔍</span>
-                        <input type="text" id="searchInput" placeholder="Buscar por ID o cliente...">
-                    </div>
-                </div>
-
-                <div class="kanban-board">
-                    <!-- Columna Pendiente -->
-                    <div class="kanban-col">
-                        <div class="col-header pending-header">
-                            Pendiente (<span id="count-Pendiente">0</span>)
+                <!-- ==========================================
+                     VISTA 3: TABLERO DE EQUIPOS (KANBAN + LISTA)
+                     ========================================== -->
+                <section id="kanban-view" class="view-section view-kanban-layout">
+                    <div class="page-header kanban-top-header">
+                        <div>
+                            <h1 class="page-title">Equipos en Taller</h1>
+                            <p class="page-subtitle">Hacé clic en cualquier tarjeta para ver o editar detalles, o arrastrala para cambiar su estado.</p>
                         </div>
-                        <div class="col-content" id="list-Pendiente" data-status="Pendiente"></div>
-                    </div>
 
-                    <!-- Columna Pendiente Aprobación -->
-                    <div class="kanban-col">
-                        <div class="col-header approval-header">
-                            Pendiente Aprob. (<span id="count-Pendiente-Aprobación">0</span>)
+                        <div class="kanban-toolbar">
+                            <div class="search-field">
+                                <svg class="icon search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="m21 21-4.3-4.3"></path>
+                                </svg>
+                                <input type="text" id="searchInput" placeholder="Buscar ID, cliente, tel, modelo o serie... (/)">
+                                <button type="button" id="clearSearchBtn" class="clear-search-btn" hidden aria-label="Limpiar búsqueda">×</button>
+                            </div>
+
+                            <label class="filter-toggle" title="Ocultar la columna de equipos ya entregados">
+                                <input type="checkbox" id="hideDeliveredToggle">
+                                <span>Ocultar entregados</span>
+                            </label>
+
+                            <div class="segmented-control" role="tablist" aria-label="Modo de visualización">
+                                <button type="button" class="seg-btn active" id="view-mode-board" data-mode="board">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                                        <path d="M9 3v18M15 3v18"></path>
+                                    </svg>
+                                    Tablero
+                                </button>
+                                <button type="button" class="seg-btn" id="view-mode-list" data-mode="list">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path>
+                                    </svg>
+                                    Lista
+                                </button>
+                            </div>
                         </div>
-                        <div class="col-content" id="list-Pendiente-Aprobación" data-status="Pendiente Aprobación"></div>
                     </div>
 
-                    <!-- Columna En Proceso -->
-                    <div class="kanban-col">
-                        <div class="col-header progress-header">
-                            En Proceso (<span id="count-En-Proceso">0</span>)
+                    <!-- Modo Tablero Kanban -->
+                    <div class="kanban-board" id="kanban-board-container">
+                        <div class="kanban-col" data-col-status="Pendiente">
+                            <div class="col-header">
+                                <div class="col-title-group">
+                                    <span class="status-dot dot-pending"></span>
+                                    <span class="col-name">Pendiente</span>
+                                </div>
+                                <span class="col-count" id="count-Pendiente">0</span>
+                            </div>
+                            <div class="col-content" id="list-Pendiente" data-status="Pendiente"></div>
                         </div>
-                        <div class="col-content" id="list-En-Proceso" data-status="En Proceso"></div>
-                    </div>
 
-                    <!-- Columna Esperando Repuestos -->
-                    <div class="kanban-col">
-                        <div class="col-header parts-header">
-                            Esperando Repuestos (<span id="count-Esperando-Repuestos">0</span>)
+                        <div class="kanban-col" data-col-status="Pendiente Aprobación">
+                            <div class="col-header">
+                                <div class="col-title-group">
+                                    <span class="status-dot dot-approval"></span>
+                                    <span class="col-name">Esperando Aprob.</span>
+                                </div>
+                                <span class="col-count" id="count-Pendiente-Aprobación">0</span>
+                            </div>
+                            <div class="col-content" id="list-Pendiente-Aprobación" data-status="Pendiente Aprobación"></div>
                         </div>
-                        <div class="col-content" id="list-Esperando-Repuestos" data-status="Esperando Repuestos"></div>
-                    </div>
 
-                    <!-- Columna Listo para Entregar -->
-                    <div class="kanban-col">
-                        <div class="col-header done-header">
-                            Listo para Entregar (<span id="count-Listo-para-Entregar">0</span>)
+                        <div class="kanban-col" data-col-status="En Proceso">
+                            <div class="col-header">
+                                <div class="col-title-group">
+                                    <span class="status-dot dot-progress"></span>
+                                    <span class="col-name">En Proceso</span>
+                                </div>
+                                <span class="col-count" id="count-En-Proceso">0</span>
+                            </div>
+                            <div class="col-content" id="list-En-Proceso" data-status="En Proceso"></div>
                         </div>
-                        <div class="col-content" id="list-Listo-para-Entregar" data-status="Listo para Entregar"></div>
-                    </div>
 
-                    <!-- Columna Entregado -->
-                    <div class="kanban-col">
-                        <div class="col-header delivered-header">
-                            Entregado (<span id="count-Entregado">0</span>)
+                        <div class="kanban-col" data-col-status="Esperando Repuestos">
+                            <div class="col-header">
+                                <div class="col-title-group">
+                                    <span class="status-dot dot-parts"></span>
+                                    <span class="col-name">Esp. Repuestos</span>
+                                </div>
+                                <span class="col-count" id="count-Esperando-Repuestos">0</span>
+                            </div>
+                            <div class="col-content" id="list-Esperando-Repuestos" data-status="Esperando Repuestos"></div>
                         </div>
-                        <div class="col-content" id="list-Entregado" data-status="Entregado"></div>
-                    </div>
-                </div>
-            </section>
 
-            <!-- VISTA: Dashboard de Finanzas -->
-            <section id="dashboard-view" class="view-section active">
-                <div class="section-header">
-                    <h1>Dashboard Financiero</h1>
-                    <p>Resumen del rendimiento y métricas de tu negocio.</p>
-                </div>
+                        <div class="kanban-col" data-col-status="Listo para Entregar">
+                            <div class="col-header">
+                                <div class="col-title-group">
+                                    <span class="status-dot dot-done"></span>
+                                    <span class="col-name">Listo p/ Entregar</span>
+                                </div>
+                                <span class="col-count" id="count-Listo-para-Entregar">0</span>
+                            </div>
+                            <div class="col-content" id="list-Listo-para-Entregar" data-status="Listo para Entregar"></div>
+                        </div>
 
-                <div class="dashboard-grid">
-                    <!-- Tarjetas de Métricas -->
-                    <div class="card metric-card">
-                        <h3>Tickets Totales</h3>
-                        <div class="metric-value" id="metric-total-tickets">0</div>
+                        <div class="kanban-col" data-col-status="Entregado" id="col-wrapper-Entregado">
+                            <div class="col-header">
+                                <div class="col-title-group">
+                                    <span class="status-dot dot-delivered"></span>
+                                    <span class="col-name">Entregado</span>
+                                </div>
+                                <span class="col-count" id="count-Entregado">0</span>
+                            </div>
+                            <div class="col-content" id="list-Entregado" data-status="Entregado"></div>
+                        </div>
                     </div>
-                    <div class="card metric-card">
-                        <h3>Ingresos Brutos</h3>
-                        <div class="metric-value" id="metric-gross-income">$0</div>
-                        <p class="metric-subtitle">Mano de Obra + Repuestos</p>
-                    </div>
-                    <div class="card metric-card">
-                        <h3>Ganancia Neta (M. Obra)</h3>
-                        <div class="metric-value text-neon" id="metric-net-profit">$0</div>
-                        <p class="metric-subtitle">Tu ganancia real</p>
-                    </div>
-                    <div class="card metric-card">
-                        <h3>Pendiente de Cobro</h3>
-                        <div class="metric-value text-warning" id="metric-pending-payment">$0</div>
-                        <p class="metric-subtitle">Equipos listos, no entregados</p>
-                    </div>
-                </div>
 
-                <div class="dashboard-grid" style="margin-top: 2rem; grid-template-columns: 2fr 1fr;">
+                    <!-- Modo Lista / Tabla -->
+                    <div class="card list-view-card" id="tickets-list-container" hidden>
+                        <div class="table-responsive">
+                            <table class="modern-table" id="ticketsTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID / Fecha</th>
+                                        <th>Cliente</th>
+                                        <th>Equipo y Trabajo</th>
+                                        <th>Estado</th>
+                                        <th>Saldo a Cobrar</th>
+                                        <th class="text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ticketsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==========================================
+                     VISTA 4: CATÁLOGO DE SERVICIOS Y TARIFARIO
+                     ========================================== -->
+                <section id="services-view" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Tarifario de Servicios</h1>
+                            <p class="page-subtitle">Administrá tus precios sugeridos de mano de obra para cotizar más rápido.</p>
+                        </div>
+                        <div class="header-actions">
+                            <button type="button" id="btn-new-service" class="btn btn-primary">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 5v14M5 12h14"></path>
+                                </svg>
+                                Nuevo Servicio
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="card">
-                        <h2>Ingresos Mensuales</h2>
-                        <div class="chart-container">
-                            <canvas id="financeChart"></canvas>
+                        <div class="catalog-toolbar">
+                            <div class="category-pills" id="service-category-pills">
+                                <button type="button" class="pill active" data-cat="all">Todos</button>
+                            </div>
+                            <div class="search-field search-field-sm">
+                                <svg class="icon search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <path d="m21 21-4.3-4.3"></path>
+                                </svg>
+                                <input type="text" id="serviceSearchInput" placeholder="Filtrar servicios...">
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="modern-table" id="servicesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Categoría</th>
+                                        <th>Servicio / Descripción</th>
+                                        <th>Precio Sugerido</th>
+                                        <th class="text-right">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
                         </div>
                     </div>
-                    <div class="card">
-                        <h2>Estado de Tickets</h2>
-                        <div class="chart-container" style="height: 250px;">
-                            <canvas id="statusChart"></canvas>
+                </section>
+
+                <!-- ==========================================
+                     VISTA 5: BASE DE DATOS Y RESPALDO
+                     ========================================== -->
+                <section id="settings-view" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Respaldo y Base de Datos</h1>
+                            <p class="page-subtitle">Toda tu información se guarda localmente en este navegador. Descargá copias periódicas para mayor seguridad.</p>
                         </div>
                     </div>
-                </div>
 
-                <div class="card" style="margin-top: 2rem;">
-                    <h2>Gestión de Servicios y Precios</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Administra tu lista de servicios. Estos aparecerán al crear un nuevo ticket.</p>
-                    <div style="overflow-x: auto;">
-                        <table class="services-table" id="servicesTable">
-                            <thead>
-                                <tr>
-                                    <th>Categoría</th>
-                                    <th>Trabajo / Servicio</th>
-                                    <th>Precio Sugerido ($)</th>
-                                    <th>Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Llenado por JS -->
-                            </tbody>
-                        </table>
+                    <div class="db-stats-row">
+                        <div class="card stat-mini-card">
+                            <span class="stat-mini-label">Tickets almacenados</span>
+                            <strong class="stat-mini-value" id="db-stat-tickets">0</strong>
+                        </div>
+                        <div class="card stat-mini-card">
+                            <span class="stat-mini-label">Clientes en agenda</span>
+                            <strong class="stat-mini-value" id="db-stat-clientes">0</strong>
+                        </div>
+                        <div class="card stat-mini-card">
+                            <span class="stat-mini-label">Servicios en tarifario</span>
+                            <strong class="stat-mini-value" id="db-stat-servicios">0</strong>
+                        </div>
                     </div>
-                    <button class="btn-primary" style="margin-top: 1rem;" onclick="mostrarModalServicio()">+ Agregar Nuevo Servicio</button>
-                </div>
-            </section>
 
-            <!-- VISTA: Ajustes y Respaldo -->
-            <section id="settings-view" class="view-section">
-                <div class="section-header">
-                    <h1>Base de Datos & Seguridad</h1>
-                    <p>Crea copias de seguridad de tus tickets o restaura datos desde un respaldo previo.</p>
-                </div>
+                    <div class="backup-grid">
+                        <div class="card backup-card">
+                            <div class="backup-icon-box kpi-blue">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                            </div>
+                            <h2 class="card-title">Exportar Copia de Seguridad</h2>
+                            <p class="card-subtitle">Descarga un archivo <code>.json</code> con todos tus tickets, agenda de clientes y tarifario de servicios.</p>
+                            <div class="backup-card-actions">
+                                <button type="button" id="export-btn" class="btn btn-primary">Descargar Respaldo (.json)</button>
+                            </div>
+                        </div>
 
-                <div class="card" style="margin-bottom: 2rem;">
-                    <h2>Exportar Datos</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Descarga un archivo seguro con todos tus tickets para guardarlo en un pendrive o en la nube.</p>
-                    <button id="export-btn" class="btn-primary">💾 Descargar Respaldo</button>
-                </div>
+                        <div class="card backup-card">
+                            <div class="backup-icon-box kpi-emerald">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                </svg>
+                            </div>
+                            <h2 class="card-title">Restaurar desde Archivo</h2>
+                            <p class="card-subtitle">Importa un respaldo previo de LAPFIX. Compatible tanto con respaldos actuales como con versiones anteriores.</p>
+                            <div class="file-upload-area">
+                                <input type="file" id="importFile" accept=".json" class="file-input">
+                            </div>
+                            <div class="backup-card-actions">
+                                <button type="button" id="import-btn" class="btn btn-secondary">Restaurar Datos</button>
+                            </div>
+                        </div>
 
-                <div class="card">
-                    <h2>Importar Datos</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 1rem;">Restaura tus tickets desde un archivo de respaldo (.json).</p>
-                    <input type="file" id="importFile" accept=".json" style="margin-bottom: 1rem;">
-                    <button id="import-btn" class="btn-primary">📂 Restaurar Respaldo</button>
-                </div>
-            </section>
+                        <div class="card backup-card">
+                            <div class="backup-icon-box kpi-amber">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                                    <circle cx="8" cy="8" r="1.5"></circle>
+                                    <circle cx="16" cy="16" r="1.5"></circle>
+                                    <circle cx="8" cy="16" r="1.5"></circle>
+                                    <circle cx="16" cy="8" r="1.5"></circle>
+                                    <circle cx="12" cy="12" r="1.5"></circle>
+                                </svg>
+                            </div>
+                            <h2 class="card-title">Datos de Demostración</h2>
+                            <p class="card-subtitle">Generá tickets aleatorios variados distribuidos en varios meses para probar tableros, gráficos y reportes.</p>
+                            <div class="backup-card-actions" style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                                <button type="button" id="btn-seed-demo" class="btn btn-secondary btn-full">🎲 Generar 25 Tickets Demo</button>
+                                <button type="button" id="btn-clear-demo" class="btn btn-ghost btn-full text-danger" style="font-size: 0.8rem;">🗑️ Limpiar todos los tickets</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-        </main>
+            </main>
+        </div>
     </div>
 
-    <!-- Contenedor oculto para impresión de presupuestos/tickets -->
+    <!-- ==========================================
+         MODAL: DETALLE Y EDICIÓN DE TICKET
+         ========================================== -->
+    <div class="modal-backdrop" id="ticket-modal" hidden>
+        <div class="modal modal-lg" role="dialog" aria-modal="true" aria-labelledby="modal-ticket-title">
+            <div class="modal-header">
+                <div class="modal-title-group">
+                    <span class="tc-id modal-id-badge" id="modal-ticket-id">LPX-001</span>
+                    <div>
+                        <h2 id="modal-ticket-title" class="modal-title">Detalle del Ticket</h2>
+                        <span class="modal-meta" id="modal-ticket-dates"></span>
+                    </div>
+                </div>
+                <div class="modal-header-actions">
+                    <a id="modal-whatsapp-btn" href="#" target="_blank" rel="noopener" class="btn btn-whatsapp btn-sm" title="Enviar mensaje por WhatsApp">
+                        WhatsApp
+                    </a>
+                    <button type="button" id="modal-print-btn" class="btn btn-secondary btn-sm">
+                        Imprimir Orden
+                    </button>
+                    <button type="button" class="icon-btn modal-close" data-close-modal="ticket-modal" aria-label="Cerrar">×</button>
+                </div>
+            </div>
+
+            <form id="edit-ticket-form" class="modal-form">
+                <div class="modal-body">
+                    <input type="hidden" id="editTicketId">
+
+                    <div class="edit-status-bar">
+                        <div class="form-group">
+                            <label for="editStatus">Estado Actual</label>
+                            <select id="editStatus"></select>
+                        </div>
+                        <div id="modal-warranty-badge-wrap" class="warranty-wrap"></div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="editClienteNombre">Cliente <span class="req">*</span></label>
+                            <input type="text" id="editClienteNombre" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editClienteTelefono">Teléfono <span class="req">*</span></label>
+                            <input type="tel" id="editClienteTelefono" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEquipoModelo">Equipo (Marca y Modelo) <span class="req">*</span></label>
+                            <input type="text" id="editEquipoModelo" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEquipoSerie">Número de Serie</label>
+                            <input type="text" id="editEquipoSerie">
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="editObsInicial">Observaciones / Accesorios</label>
+                            <textarea id="editObsInicial" rows="2"></textarea>
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="editTrabajoRealizar">Falla Reportada / Trabajo Realizado <span class="req">*</span></label>
+                            <textarea id="editTrabajoRealizar" rows="2" required></textarea>
+                        </div>
+                    </div>
+
+                    <div class="edit-pricing-box">
+                        <div class="form-grid pricing-4-col">
+                            <div class="form-group">
+                                <label for="editCostoRepuestosNeto">Repuestos Neto ($)</label>
+                                <input type="number" id="editCostoRepuestosNeto" min="0" step="any">
+                            </div>
+                            <div class="form-group">
+                                <label for="editMargenRepuestos">Margen (%)</label>
+                                <input type="number" id="editMargenRepuestos" min="0" step="any">
+                            </div>
+                            <div class="form-group">
+                                <label for="editPrecioManoObra">Mano de Obra ($)</label>
+                                <input type="number" id="editPrecioManoObra" min="0" step="any">
+                            </div>
+                            <div class="form-group">
+                                <label for="editPrecioSena">Seña Dejada ($)</label>
+                                <input type="number" id="editPrecioSena" min="0" step="any">
+                            </div>
+                        </div>
+                        <div class="edit-pricing-summary">
+                            <span>Repuestos (venta): <strong id="editRepuestosVentaSpan">$ 0,00</strong></span>
+                            <span>Total trabajo: <strong id="editTotalTrabajoSpan">$ 0,00</strong></span>
+                            <span class="edit-saldo-pill">Saldo a cobrar: <strong id="editSaldoTotalSpan">$ 0,00</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" id="modal-delete-btn" class="btn btn-danger-ghost">Eliminar Ticket</button>
+                    <div class="modal-footer-right">
+                        <button type="button" class="btn btn-secondary" data-close-modal="ticket-modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL: CREAR / EDITAR SERVICIO
+         ========================================== -->
+    <div class="modal-backdrop" id="service-modal" hidden>
+        <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="service-modal-title">
+            <div class="modal-header">
+                <h2 id="service-modal-title" class="modal-title">Nuevo Servicio</h2>
+                <button type="button" class="icon-btn modal-close" data-close-modal="service-modal" aria-label="Cerrar">×</button>
+            </div>
+            <form id="service-form" class="modal-body">
+                <input type="hidden" id="serviceEditId">
+                <datalist id="categoriasSugeridas">
+                    <option value="Diagnóstico"></option>
+                    <option value="Software"></option>
+                    <option value="Hardware"></option>
+                    <option value="Datos"></option>
+                </datalist>
+
+                <div class="form-group">
+                    <label for="serviceCategoria">Categoría <span class="req">*</span></label>
+                    <input type="text" id="serviceCategoria" list="categoriasSugeridas" required placeholder="Ej: Hardware, Software, Diagnóstico">
+                </div>
+                <div class="form-group">
+                    <label for="serviceNombre">Nombre del Servicio <span class="req">*</span></label>
+                    <input type="text" id="serviceNombre" required placeholder="Ej: Cambio de pasta térmica y limpieza">
+                </div>
+                <div class="form-group">
+                    <label for="servicePrecio">Precio Sugerido ($) <span class="req">*</span></label>
+                    <input type="number" id="servicePrecio" min="0" step="any" required placeholder="Ej: 45000">
+                </div>
+                <div class="form-group">
+                    <label for="serviceJustificacion">Descripción / Notas <span class="optional-tag">Opcional</span></label>
+                    <textarea id="serviceJustificacion" rows="2" placeholder="Detalle de qué incluye el servicio..."></textarea>
+                </div>
+
+                <div class="modal-footer modal-footer-end">
+                    <button type="button" class="btn btn-secondary" data-close-modal="service-modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Servicio</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MODAL: CONFIRMACIÓN
+         ========================================== -->
+    <div class="modal-backdrop" id="confirm-modal" hidden>
+        <div class="modal modal-xs" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+            <div class="modal-header">
+                <h2 id="confirm-modal-title" class="modal-title">Confirmar acción</h2>
+                <button type="button" class="icon-btn modal-close" id="confirm-cancel-x" aria-label="Cerrar">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-modal-message" class="confirm-message"></p>
+                <div class="modal-footer modal-footer-end">
+                    <button type="button" id="confirm-cancel-btn" class="btn btn-secondary">Cancelar</button>
+                    <button type="button" id="confirm-accept-btn" class="btn btn-danger">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor oculto para impresión de presupuestos/órdenes -->
     <div id="print-container"></div>
 
-    <!-- Tu script principal -->
-    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Contenedor de notificaciones Toast -->
+    <div id="toast-container" aria-live="polite"></div>
+
+    <!-- Librerías locales -->
+    <script src="vendor/dexie.min.js"></script>
+    <script src="vendor/chart.umd.min.js"></script>
     <script src="main.js"></script>
     <script>
-        if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').then(registration => {
-                    console.log('SW registrado con éxito:', registration.scope);
-                }).catch(err => {
-                    console.log('SW fallo al registrar:', err);
+                navigator.serviceWorker.register('./sw.js').catch(err => {
+                    console.log('SW no registrado:', err);
                 });
             });
         }
